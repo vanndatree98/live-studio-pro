@@ -801,6 +801,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         silentSource.buffer = silentBuffer;
         silentSource.loop = true;
         silentSource.connect(audioDestNode);
+
+        // Also route to computer speaker destination via inaudible gain (0.00001)
+        // This flags the tab as "Audible" in Chromium so Chrome never suspends, sleeps, or throttles this background tab!
+        const silentAudibleGain = audioContext.createGain();
+        silentAudibleGain.gain.value = 0.00001;
+        silentSource.connect(silentAudibleGain);
+        silentAudibleGain.connect(audioContext.destination);
+
         silentSource.start();
         window.__silentAudioCarrier = silentSource;
       } catch (e) {}
@@ -1563,22 +1571,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // 10. Main Program Loop (Target FPS Render with Frame Throttling to save CPU/GPU)
+  // 10. Main Program Loop (Target FPS Render with Background-Tab Worker Clock)
   let lastRenderTimestamp = 0;
-  function renderLoop(timestamp) {
-    requestAnimationFrame(renderLoop);
+  let rafHandle = null;
 
+  function executeRenderFrame(timestamp) {
     const targetFps = streamConfig.fps || 30;
     const frameInterval = 1000 / targetFps;
 
     // Frame pacing / throttle: skip extra frames on high-refresh monitors (60Hz, 120Hz, 144Hz)
-    if (timestamp && lastRenderTimestamp) {
-      const elapsed = timestamp - lastRenderTimestamp;
-      if (elapsed < frameInterval - 1.5) {
+    const now = timestamp || performance.now();
+    if (lastRenderTimestamp) {
+      const elapsed = now - lastRenderTimestamp;
+      if (elapsed < frameInterval - 2) {
         return;
       }
     }
-    lastRenderTimestamp = timestamp || performance.now();
+    lastRenderTimestamp = now;
 
     const width = liveCanvas.width;
     const height = liveCanvas.height;
@@ -1600,6 +1609,106 @@ document.addEventListener('DOMContentLoaded', async () => {
     // B. Render Overlays (Lower third, ticker, watermark, promo, pinned comment)
     overlayManager.render(ctx, width, height);
   }
+
+  function renderLoop(timestamp) {
+    if (!document.hidden) {
+      rafHandle = requestAnimationFrame(renderLoop);
+    }
+    executeRenderFrame(timestamp);
+  }
+
+  // Background Web Worker Clock: Fires without any browser throttling even when tab is hidden or minimized!
+  let backgroundRenderWorker = null;
+  try {
+    const workerBlob = new Blob([`
+      let timer = null;
+      let pingTimer = null;
+
+      self.onmessage = function(e) {
+        const msg = e.data || {};
+        if (msg.action === 'start') {
+          if (timer) clearInterval(timer);
+          const fps = msg.fps || 30;
+          const interval = Math.max(16, Math.floor(1000 / fps));
+          timer = setInterval(() => {
+            self.postMessage({ type: 'render_tick', timestamp: performance.now() });
+          }, interval);
+
+          if (!pingTimer) {
+            pingTimer = setInterval(() => {
+              self.postMessage({ type: 'ping_tick' });
+            }, 8000);
+          }
+        } else if (msg.action === 'stop') {
+          if (timer) {
+            clearInterval(timer);
+            timer = null;
+          }
+        }
+      };
+    `], { type: 'application/javascript' });
+
+    backgroundRenderWorker = new Worker(URL.createObjectURL(workerBlob));
+    backgroundRenderWorker.onmessage = (e) => {
+      if (e.data && e.data.type === 'render_tick') {
+        const now = e.data.timestamp || performance.now();
+        // If tab is in background or rAF has stalled (> 32ms), keep rendering canvas smoothly!
+        if (document.hidden || (now - lastRenderTimestamp >= 30)) {
+          executeRenderFrame(now);
+        }
+      } else if (e.data && e.data.type === 'ping_tick') {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          try { ws.send(JSON.stringify({ type: 'ping' })); } catch (err) {}
+        }
+      }
+    };
+
+    // Start background worker as active guardian
+    backgroundRenderWorker.postMessage({ action: 'start', fps: streamConfig.fps || 30 });
+  } catch (err) {
+    console.warn('[Background Worker Setup]', err);
+  }
+
+  // Tab Visibility Change Handler: Seamlessly hand off between rAF and Worker
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      console.log('[Background Mode] Tab hidden — Background Worker Clock keeping Live 100% active at 30 FPS');
+      if (backgroundRenderWorker) {
+        backgroundRenderWorker.postMessage({ action: 'start', fps: streamConfig.fps || 30 });
+      }
+    } else {
+      console.log('[Foreground Mode] Tab visible — Synchronizing rAF loop');
+      if (!rafHandle) {
+        rafHandle = requestAnimationFrame(renderLoop);
+      }
+    }
+  });
+
+  // Screen Wake Lock API (Prevents PC sleep / screen turn off during Live)
+  let wakeLockSentinel = null;
+  async function acquireWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockSentinel = await navigator.wakeLock.request('screen');
+        console.log('[WakeLock] Screen Wake Lock active — PC will not sleep during Live');
+      }
+    } catch (e) {
+      console.warn('[WakeLock]', e.message);
+    }
+  }
+
+  function releaseWakeLock() {
+    if (wakeLockSentinel) {
+      try { wakeLockSentinel.release(); } catch (e) {}
+      wakeLockSentinel = null;
+    }
+  }
+
+  document.addEventListener('visibilitychange', async () => {
+    if (!document.hidden && isStreaming && !wakeLockSentinel) {
+      await acquireWakeLock();
+    }
+  });
 
   function drawFallbackCanvas(message) {
     const w = liveCanvas.width;
@@ -1761,6 +1870,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       btnToggleLive.innerHTML = '⏹️ បញ្ឈប់ LIVE (Stop Stream)';
       btnToggleLive.classList.add('is-live');
 
+      acquireWakeLock();
+      if (backgroundRenderWorker) {
+        backgroundRenderWorker.postMessage({ action: 'start', fps: streamConfig.fps || 30 });
+      }
+
       streamStartTime = Date.now();
       clearInterval(streamTimerInterval);
       streamTimerInterval = setInterval(() => {
@@ -1776,6 +1890,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       statusText.textContent = 'OFFLINE (មិនទាន់ Live)';
       btnToggleLive.innerHTML = '🔴 ចាប់ផ្តើម LIVE (Go Live)';
       btnToggleLive.classList.remove('is-live');
+
+      releaseWakeLock();
 
       clearInterval(streamTimerInterval);
       timerEl.textContent = '00:00:00';
