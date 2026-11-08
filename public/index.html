@@ -467,6 +467,28 @@
               <span>💡 <strong>គន្លឹះ៖</strong> អ្នកអាច <strong>ចុចចាប់អូស (Drag)</strong> រូប Filter លើអេក្រង់វីដេអូដោយផ្ទាល់ ឬ <strong>វិលកង់កណ្តុរ (Scroll)</strong> ដើម្បីពង្រីក/បង្រួម!</span>
             </div>
 
+            <!-- Face Tracking Mode & Anchor Selection (🎯 កំណត់ទីតាំងមុខ) -->
+            <div class="face-mode-section">
+              <div class="face-mode-header">
+                <span class="face-mode-label">🎯 របៀបកំណត់ផ្ទៃមុខ៖</span>
+                <span class="face-mode-status" id="faceModeStatusText">🎯 កំណត់ទីតាំង (Target)</span>
+              </div>
+              <div class="face-mode-buttons">
+                <button type="button" class="btn-face-mode active" data-mode="target" id="btnModeTarget" title="កំណត់ទីតាំងមុខត្រង់ណា ចាប់នៅត្រង់នោះ មិនរត់ចោលឡើយ">
+                  🎯 កំណត់ទីតាំង
+                </button>
+                <button type="button" class="btn-face-mode" data-mode="lock" id="btnModeLock" title="ចាក់សោរទីតាំងជាប់ស្ងៀម គ្មានរង្គើ">
+                  📌 ចាក់សោរ
+                </button>
+                <button type="button" class="btn-face-mode" data-mode="auto" id="btnModeAuto" title="ស្កេនរកផ្ទៃមុខស្វ័យប្រវត្តិពេញអេក្រង់">
+                  🤖 ស្វ័យប្រវត្តិ
+                </button>
+              </div>
+              <button type="button" class="btn-pick-face-anchor" id="btnPickFaceAnchor" title="ចុចលើអេក្រង់វីដេអូដើម្បីកំណត់ទីតាំងផ្ទៃមុខ">
+                <span class="pick-crosshair">🎯</span> <strong>ចុចលើអេក្រង់កំណត់ទីតាំងមុខ</strong> (Click Face on Screen)
+              </button>
+            </div>
+
             <!-- Quick Scale Presets Row -->
             <div class="scale-preset-row">
               <span class="scale-label">🔍 ពង្រីក/បង្រួម៖</span>

@@ -2134,6 +2134,67 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // Tracking Mode & Anchor Selection Controls
+  const faceModeStatusText = document.getElementById('faceModeStatusText');
+  const btnPickFaceAnchor = document.getElementById('btnPickFaceAnchor');
+  const btnFaceModes = document.querySelectorAll('.btn-face-mode');
+
+  function updateFaceTrackingModeUI(mode) {
+    faceFilterEngine.setTrackingMode(mode);
+    btnFaceModes.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+    if (faceModeStatusText) {
+      if (mode === 'target') {
+        faceModeStatusText.textContent = '🎯 កំណត់ទីតាំង (Target)';
+        faceModeStatusText.style.borderColor = 'rgba(56, 189, 248, 0.4)';
+        faceModeStatusText.style.color = '#38bdf8';
+      } else if (mode === 'lock') {
+        faceModeStatusText.textContent = '📌 ចាក់សោរ (Lock)';
+        faceModeStatusText.style.borderColor = 'rgba(234, 179, 8, 0.4)';
+        faceModeStatusText.style.color = '#facc15';
+      } else {
+        faceModeStatusText.textContent = '🤖 ស្វ័យប្រវត្តិ (Auto)';
+        faceModeStatusText.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+        faceModeStatusText.style.color = '#34d399';
+      }
+    }
+  }
+
+  btnFaceModes.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode || 'target';
+      updateFaceTrackingModeUI(mode);
+      const modeLabels = {
+        target: '🎯 របៀបកំណត់ទីតាំង (Target Anchor)',
+        lock: '📌 របៀបចាក់សោរទីតាំង (Fixed Lock)',
+        auto: '🤖 របៀបស្វ័យប្រវត្តិ (Auto Fullscreen)'
+      };
+      showToast(`បានប្តូរទៅ៖ ${modeLabels[mode] || mode}`, 'info');
+    });
+  });
+
+  if (btnPickFaceAnchor) {
+    btnPickFaceAnchor.addEventListener('click', () => {
+      if (!faceFilterEngine.enabled) {
+        if (checkEnableFaceFilters) checkEnableFaceFilters.checked = true;
+        faceFilterEngine.enabled = true;
+      }
+      if (faceFilterEngine.currentFilter === 'none') {
+        selectFaceFilter('sunglasses');
+      }
+      faceFilterEngine.isPickingAnchor = !faceFilterEngine.isPickingAnchor;
+      btnPickFaceAnchor.classList.toggle('picking', faceFilterEngine.isPickingAnchor);
+      if (faceFilterEngine.isPickingAnchor) {
+        liveCanvas.style.cursor = 'crosshair';
+        showToast('🎯 សូមចុចលើទីតាំងផ្ទៃមុខរបស់អ្នកលើអេក្រង់វីដេអូ!', 'info');
+      } else {
+        faceFilterEngine.hoverCanvasPoint = null;
+        liveCanvas.style.cursor = 'default';
+      }
+    });
+  }
+
   // =========================================================================
   // INTERACTIVE CANVAS DRAG-AND-DROP & MOUSE WHEEL ZOOM
   // Allows user to click & drag (ចាប់អូស) filter directly on live preview,
@@ -2150,8 +2211,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   liveCanvas.addEventListener('pointerdown', (e) => {
-    if (!faceFilterEngine.enabled || faceFilterEngine.currentFilter === 'none') return;
+    if (!faceFilterEngine.enabled) return;
     const pt = getCanvasCoords(e);
+
+    // 1. If currently in Anchor Picking mode: user clicked to pin/lock face at this location
+    if (faceFilterEngine.isPickingAnchor) {
+      faceFilterEngine.setFaceAnchor(pt.x, pt.y);
+      faceFilterEngine.isPickingAnchor = false;
+      faceFilterEngine.hoverCanvasPoint = null;
+      liveCanvas.style.cursor = 'default';
+      if (btnPickFaceAnchor) btnPickFaceAnchor.classList.remove('picking');
+      updateFaceTrackingModeUI('target');
+      syncFaceFilterTransformUI();
+      showToast('✅ បានកំណត់ទីតាំងផ្ទៃមុខជោគជ័យ! Filter នឹងចាប់នៅកន្លែងនេះរហូត', 'success');
+      return;
+    }
+
+    if (faceFilterEngine.currentFilter === 'none') return;
 
     if (faceFilterEngine.hitTest(pt.x, pt.y)) {
       faceFilterEngine.isDragging = true;
@@ -2166,8 +2242,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   liveCanvas.addEventListener('pointermove', (e) => {
-    if (!faceFilterEngine.enabled || faceFilterEngine.currentFilter === 'none') return;
+    if (!faceFilterEngine.enabled) return;
     const pt = getCanvasCoords(e);
+
+    // Anchor picking interactive crosshair hover
+    if (faceFilterEngine.isPickingAnchor) {
+      faceFilterEngine.hoverCanvasPoint = pt;
+      liveCanvas.style.cursor = 'crosshair';
+      return;
+    }
+
+    if (faceFilterEngine.currentFilter === 'none') return;
 
     if (faceFilterEngine.isDragging) {
       const dx = pt.x - faceFilterEngine.dragStartX;
@@ -2188,6 +2273,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const stopFilterDrag = (e) => {
     if (faceFilterEngine.isDragging) {
       faceFilterEngine.isDragging = false;
+      // In target/lock mode, dragging the filter updates the anchor coordinate to this spot
+      if (faceFilterEngine.trackingMode === 'target' || faceFilterEngine.trackingMode === 'lock') {
+        faceFilterEngine.updateAnchorFromFace();
+      }
       liveCanvas.style.cursor = faceFilterEngine.isHovered ? 'grab' : 'default';
       try { liveCanvas.releasePointerCapture(e.pointerId); } catch (err) {}
     }

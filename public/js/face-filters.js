@@ -2,9 +2,14 @@
  * AI Face Filter Engine
  * Real-Time Face Tracking & AR Face Filter System for Live Streamers.
  * Supports:
- * - Native Browser FaceDetector API + High-Speed Offline CV Fallback.
- * - Interactive Drag-and-Drop on live canvas (ចាប់អូសលើអេក្រង់បានដោយផ្ទាល់).
- * - Mouse Wheel & Multi-touch Zoom / Scale (បង្រួមតូច ធំ).
+ * - 3 Tracking Modes:
+ *   1. 'target' (Default): "ចាប់ផ្ទៃមុខនៅកន្លែងណា ចាប់នៅកន្លែងនោះ" — anchors to the exact face region
+ *      selected by the user, ignores background faces/distractions, and never jumps to center!
+ *   2. 'lock': "ចាក់សោរទីតាំងជាប់" — 100% solidly pinned at user-selected coordinate (zero drift, zero jitter).
+ *   3. 'auto': Full-frame automatic face scanner.
+ * - One-Click Face Anchor on Screen (ចុចលើអេក្រង់ដើម្បីកំណត់ទីតាំងមុខ).
+ * - Interactive Drag-and-Drop (ចាប់អូសលើអេក្រង់បានដោយផ្ទាល់).
+ * - Mouse Wheel & Multi-Touch Zoom / Scale (បង្រួមតូច ធំ).
  * - 10 High-Quality AR Accessories: Sunglasses, Royal Crown, Bunny Ears,
  *   Cat Ears, Flower Headband, Cyber Neon Visor, Kawaii Blush & Hearts,
  *   Gentleman Top Hat & Mustache, Sci-Fi AI Scanner, and Masquerade Mask.
@@ -18,6 +23,22 @@ class AIFaceFilterEngine {
     this.offsetX = 0;            // -400 to +400 px
     this.offsetY = 0;            // -400 to +400 px
     this.showDebugBox = false;
+
+    // Tracking Mode: 'target' (pinned region), 'lock' (fixed anchor), 'auto' (full auto)
+    this.trackingMode = 'target';
+
+    // Face Anchor (where the user pinned / set the face on screen)
+    this.anchor = {
+      isSet: false,
+      x: 0,
+      y: 0,
+      w: 0,
+      h: 0
+    };
+
+    // User is in "Click on screen to set face" mode
+    this.isPickingAnchor = false;
+    this.hoverCanvasPoint = null;
 
     // Interactive Dragging & Scaling on Canvas
     this.isDragging = false;
@@ -72,6 +93,14 @@ class AIFaceFilterEngine {
     this.triggerInteraction();
   }
 
+  setTrackingMode(mode) {
+    this.trackingMode = mode; // 'target', 'lock', 'auto'
+    if (mode === 'lock' && !this.anchor.isSet) {
+      this.updateAnchorFromFace();
+    }
+    this.triggerInteraction();
+  }
+
   setScale(scale) {
     this.filterScale = Math.max(0.4, Math.min(2.5, Math.round(scale * 100) / 100));
     this.triggerInteraction();
@@ -79,11 +108,13 @@ class AIFaceFilterEngine {
 
   setOffsetX(offset) {
     this.offsetX = Math.max(-400, Math.min(400, Math.round(offset)));
+    this.updateAnchorFromFace();
     this.triggerInteraction();
   }
 
   setOffsetY(offset) {
     this.offsetY = Math.max(-400, Math.min(400, Math.round(offset)));
+    this.updateAnchorFromFace();
     this.triggerInteraction();
   }
 
@@ -96,6 +127,45 @@ class AIFaceFilterEngine {
 
   triggerInteraction() {
     this.lastInteractionTime = performance.now();
+  }
+
+  /**
+   * Set explicit Face Anchor when user clicks on screen
+   * "ចុចលើអេក្រង់កំណត់ផ្ទៃមុខនៅកន្លែងណា ចាប់នៅកន្លែងនោះ"
+   */
+  setFaceAnchor(canvasX, canvasY, customW, customH) {
+    const w = customW || (this.face.w > 0 ? this.face.w : 240 * this.filterScale);
+    const h = customH || (w * 1.25);
+    const x = canvasX - w / 2;
+    const y = canvasY - h * 0.42;
+
+    this.anchor.isSet = true;
+    this.anchor.x = x;
+    this.anchor.y = y;
+    this.anchor.w = w;
+    this.anchor.h = h;
+
+    this.face.x = x;
+    this.face.y = y;
+    this.face.w = w;
+    this.face.h = h;
+    this.face.angle = 0;
+    this.face.detected = true;
+    this.face.confidence = 1.0;
+    this.face.lastSeen = performance.now();
+
+    this.isPickingAnchor = false;
+    this.triggerInteraction();
+  }
+
+  updateAnchorFromFace() {
+    if (this.face.w > 0 && this.face.h > 0) {
+      this.anchor.isSet = true;
+      this.anchor.x = this.face.x;
+      this.anchor.y = this.face.y;
+      this.anchor.w = this.face.w;
+      this.anchor.h = this.face.h;
+    }
   }
 
   /**
@@ -119,26 +189,64 @@ class AIFaceFilterEngine {
    */
   processAndRender(ctx, videoEl, canvasW, canvasH, flipH = false) {
     if (!this.enabled || this.currentFilter === 'none' || !videoEl || videoEl.readyState < 2) {
+      // If user is picking an anchor, still draw the reticle guide!
+      if (this.isPickingAnchor && this.hoverCanvasPoint) {
+        this.drawAnchorPickerGuide(ctx, canvasW, canvasH);
+      }
       return;
     }
 
     const now = performance.now();
 
-    // Trigger async face detection on throttle interval
-    if (now - this.lastDetectTime >= this.detectIntervalMs && !this.isDetecting) {
-      this.lastDetectTime = now;
-      this.isDetecting = true;
-      this.detectFace(videoEl, canvasW, canvasH, flipH)
-        .catch(err => console.debug('[Face detect error]', err))
-        .finally(() => { this.isDetecting = false; });
-    }
+    // 1. LOCKED PIN MODE: Stay 100% firmly at the set anchor position!
+    if (this.trackingMode === 'lock') {
+      if (!this.anchor.isSet) {
+        const defW = canvasW * 0.3;
+        const defH = defW * 1.25;
+        this.anchor.isSet = true;
+        this.anchor.x = (canvasW - defW) / 2;
+        this.anchor.y = canvasH * 0.22;
+        this.anchor.w = defW;
+        this.anchor.h = defH;
+      }
+      this.face.x = this.anchor.x;
+      this.face.y = this.anchor.y;
+      this.face.w = this.anchor.w;
+      this.face.h = this.anchor.h;
+      this.face.angle = 0;
+      this.face.detected = true;
+      this.face.confidence = 1.0;
+      this.face.lastSeen = now;
+    } else {
+      // 2. TARGET ANCHOR or AUTO DETECT MODE: Run async detector
+      if (now - this.lastDetectTime >= this.detectIntervalMs && !this.isDetecting) {
+        this.lastDetectTime = now;
+        this.isDetecting = true;
+        this.detectFace(videoEl, canvasW, canvasH, flipH)
+          .catch(err => console.debug('[Face detect error]', err))
+          .finally(() => { this.isDetecting = false; });
+      }
 
-    // Decay face detection if not seen recently (> 650ms)
-    if (now - this.face.lastSeen > 650) {
-      this.face.detected = false;
+      // If in TARGET mode, if face temporarily obscured, stay pinned at anchor (never jump to center!)
+      if (this.trackingMode === 'target' && this.anchor.isSet) {
+        if (now - this.face.lastSeen > 500) {
+          this.face.x = this.anchor.x;
+          this.face.y = this.anchor.y;
+          this.face.w = this.anchor.w;
+          this.face.h = this.anchor.h;
+          this.face.angle = 0;
+          this.face.detected = true;
+          this.face.lastSeen = now;
+        }
+      } else if (now - this.face.lastSeen > 650) {
+        this.face.detected = false;
+      }
     }
 
     if (!this.face.detected) {
+      if (this.isPickingAnchor && this.hoverCanvasPoint) {
+        this.drawAnchorPickerGuide(ctx, canvasW, canvasH);
+      }
       return;
     }
 
@@ -155,7 +263,8 @@ class AIFaceFilterEngine {
       ctx.strokeRect(x, y, w, h);
       ctx.fillStyle = '#00ffcc';
       ctx.font = 'bold 16px "Inter", sans-serif';
-      ctx.fillText(`AI FACE DETECTED (${Math.round(this.face.confidence * 100)}%)`, x, y - 10);
+      const modeLabel = this.trackingMode === 'lock' ? 'PINNED' : this.trackingMode === 'target' ? 'TARGET LOCKED' : 'AUTO';
+      ctx.fillText(`AI FACE [${modeLabel}] (${Math.round(this.face.confidence * 100)}%)`, x, y - 10);
       ctx.restore();
     }
 
@@ -199,6 +308,11 @@ class AIFaceFilterEngine {
       this.drawTransformGizmo(ctx, now);
     }
 
+    // Draw Anchor Picker Guide if user is currently clicking to set face
+    if (this.isPickingAnchor && this.hoverCanvasPoint) {
+      this.drawAnchorPickerGuide(ctx, canvasW, canvasH);
+    }
+
     ctx.restore();
   }
 
@@ -217,17 +331,18 @@ class AIFaceFilterEngine {
     const halfH = b.h / 2 + 10;
 
     // Glowing dashed frame
-    ctx.strokeStyle = this.isDragging ? '#f43f5e' : '#8b5cf6';
+    const themeColor = this.isDragging ? '#f43f5e' : (this.trackingMode === 'lock' ? '#3b82f6' : '#8b5cf6');
+    ctx.strokeStyle = themeColor;
     ctx.lineWidth = 2.5;
     ctx.setLineDash([7, 6]);
-    ctx.shadowColor = this.isDragging ? 'rgba(244, 63, 94, 0.7)' : 'rgba(139, 92, 246, 0.7)';
+    ctx.shadowColor = themeColor;
     ctx.shadowBlur = 12;
     ctx.strokeRect(-halfW, -halfH, halfW * 2, halfH * 2);
 
     // 4 Corner Handles
     ctx.setLineDash([]);
     ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = this.isDragging ? '#f43f5e' : '#8b5cf6';
+    ctx.strokeStyle = themeColor;
     ctx.lineWidth = 2;
     const handleSize = 10;
     const corners = [
@@ -242,7 +357,7 @@ class AIFaceFilterEngine {
     });
 
     // Move Icon ✥ at top center
-    ctx.fillStyle = this.isDragging ? '#f43f5e' : '#8b5cf6';
+    ctx.fillStyle = themeColor;
     ctx.beginPath();
     ctx.arc(0, -halfH - 16, 13, 0, Math.PI * 2);
     ctx.fill();
@@ -252,15 +367,16 @@ class AIFaceFilterEngine {
     ctx.textBaseline = 'middle';
     ctx.fillText('✥', 0, -halfH - 16);
 
-    // Status Pill Badge below: "✥ X: +0 Y: -12 • 🔍 110%"
-    const infoText = `✥ X:${this.offsetX >= 0 ? '+' : ''}${this.offsetX} Y:${this.offsetY >= 0 ? '+' : ''}${this.offsetY}  •  🔍 ${Math.round(this.filterScale * 100)}%`;
-    ctx.font = 'bold 13px "Inter", "Kantumruy Pro", sans-serif';
+    // Status Pill Badge below
+    const modeBadge = this.trackingMode === 'lock' ? '📌 LOCKED' : this.trackingMode === 'target' ? '🎯 TARGET' : '🤖 AUTO';
+    const infoText = `${modeBadge}  •  ✥ X:${this.offsetX >= 0 ? '+' : ''}${this.offsetX} Y:${this.offsetY >= 0 ? '+' : ''}${this.offsetY}  •  🔍 ${Math.round(this.filterScale * 100)}%`;
+    ctx.font = 'bold 12.5px "Inter", "Kantumruy Pro", sans-serif';
     const textW = ctx.measureText(infoText).width;
     const badgeW = textW + 26;
     const badgeH = 28;
     const badgeY = halfH + 16;
 
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
     ctx.beginPath();
     if (ctx.roundRect) {
       ctx.roundRect(-badgeW / 2, badgeY, badgeW, badgeH, 14);
@@ -268,12 +384,61 @@ class AIFaceFilterEngine {
       ctx.rect(-badgeW / 2, badgeY, badgeW, badgeH);
     }
     ctx.fill();
-    ctx.strokeStyle = this.isDragging ? '#f43f5e' : '#8b5cf6';
+    ctx.strokeStyle = themeColor;
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
     ctx.fillStyle = '#ffffff';
     ctx.fillText(infoText, 0, badgeY + badgeH / 2);
+
+    ctx.restore();
+  }
+
+  /**
+   * Draws real-time Crosshair target guide when user is clicking on screen to set face position
+   */
+  drawAnchorPickerGuide(ctx, canvasW, canvasH) {
+    const pt = this.hoverCanvasPoint;
+    if (!pt) return;
+
+    ctx.save();
+    ctx.translate(pt.x, pt.y);
+
+    const radius = 45;
+    ctx.strokeStyle = '#00ffcc';
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = '#00ffcc';
+    ctx.shadowBlur = 15;
+
+    // Pulsing outer circle
+    const pulse = (Math.sin(performance.now() / 200) + 1) * 0.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius + pulse * 6, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Crosshairs
+    ctx.beginPath();
+    ctx.moveTo(-radius - 15, 0); ctx.lineTo(-12, 0);
+    ctx.moveTo(12, 0); ctx.lineTo(radius + 15, 0);
+    ctx.moveTo(0, -radius - 15); ctx.lineTo(0, -12);
+    ctx.moveTo(0, 12); ctx.lineTo(0, radius + 15);
+    ctx.stroke();
+
+    // Center dot
+    ctx.fillStyle = '#00ffcc';
+    ctx.beginPath();
+    ctx.arc(0, 0, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Guide Text
+    const label = '🎯 ចុចត្រង់នេះដើម្បីកំណត់ទីតាំងផ្ទៃមុខ (Click to Set Face)';
+    ctx.font = 'bold 14px "Kantumruy Pro", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+    ctx.shadowBlur = 10;
+    ctx.fillText(label, 0, -radius - 22);
 
     ctx.restore();
   }
@@ -290,11 +455,27 @@ class AIFaceFilterEngine {
       try {
         const faces = await this.nativeDetector.detect(videoEl);
         if (faces && faces.length > 0) {
-          const f = faces[0];
-          const b = f.boundingBox;
+          // If multiple faces and target mode is on, pick the face closest to the user's anchor!
+          let bestFace = faces[0];
           const vW = videoEl.videoWidth || 1;
           const vH = videoEl.videoHeight || 1;
 
+          if (faces.length > 1 && this.anchor.isSet) {
+            let minDistance = Infinity;
+            faces.forEach(f => {
+              const b = f.boundingBox;
+              let fx = (b.x / vW) * canvasW;
+              let fy = (b.y / vH) * canvasH;
+              if (flipH) fx = canvasW - (fx + (b.width / vW) * canvasW);
+              const dist = Math.hypot(fx - this.anchor.x, fy - this.anchor.y);
+              if (dist < minDistance) {
+                minDistance = dist;
+                bestFace = f;
+              }
+            });
+          }
+
+          const b = bestFace.boundingBox;
           let fx = (b.x / vW) * canvasW;
           let fy = (b.y / vH) * canvasH;
           let fw = (b.width / vW) * canvasW;
@@ -336,11 +517,21 @@ class AIFaceFilterEngine {
       this.face.confidence = targetBox.conf || 0.9;
       this.face.detected = true;
       this.face.lastSeen = now;
+
+      // In target mode, if anchor wasn't explicitly set, initialize it from first clean detection
+      if (this.trackingMode === 'target' && !this.anchor.isSet) {
+        this.anchor.x = this.face.x;
+        this.anchor.y = this.face.y;
+        this.anchor.w = this.face.w;
+        this.anchor.h = this.face.h;
+        this.anchor.isSet = true;
+      }
     }
   }
 
   /**
    * Ultra-Fast, Zero-Dependency Offline Computer Vision Face Detector
+   * "ចាប់ផ្ទៃមុខនៅកន្លែងណា ចាប់នៅកន្លែងនោះ"
    */
   detectFaceWithColorCV(videoEl, canvasW, canvasH, flipH) {
     const dw = this.detectCanvas.width;
@@ -359,8 +550,24 @@ class AIFaceFilterEngine {
     let skinPixelCount = 0;
     let sumX = 0, sumY = 0;
 
-    for (let y = 10; y < dh - 10; y += 2) {
-      for (let x = 10; x < dw - 10; x += 2) {
+    // In TARGET mode, calculate search window around user's anchor
+    let startX = 6, endX = dw - 6, startY = 6, endY = dh - 6;
+    if (this.trackingMode === 'target' && this.anchor.isSet) {
+      const scaleX = canvasW / dw;
+      const scaleY = canvasH / dh;
+      const anchorMidX = (this.anchor.x + this.anchor.w / 2) / scaleX;
+      const anchorMidY = (this.anchor.y + this.anchor.h / 2) / scaleY;
+      const radX = Math.max(30, (this.anchor.w * 0.9) / scaleX);
+      const radY = Math.max(35, (this.anchor.h * 0.9) / scaleY);
+
+      startX = Math.max(4, Math.floor(anchorMidX - radX));
+      endX = Math.min(dw - 4, Math.ceil(anchorMidX + radX));
+      startY = Math.max(4, Math.floor(anchorMidY - radY));
+      endY = Math.min(dh - 4, Math.ceil(anchorMidY + radY));
+    }
+
+    for (let y = startY; y < endY; y += 2) {
+      for (let x = startX; x < endX; x += 2) {
         const idx = (y * dw + x) * 4;
         const r = data[idx];
         const g = data[idx + 1];
@@ -384,7 +591,14 @@ class AIFaceFilterEngine {
       }
     }
 
-    if (skinPixelCount < 90 || maxX <= minX || maxY <= minY) {
+    // If skin pixels not found, NEVER jump to center! Keep user's anchor position!
+    if (skinPixelCount < 60 || maxX <= minX || maxY <= minY) {
+      if (this.anchor.isSet) {
+        return { x: this.anchor.x, y: this.anchor.y, w: this.anchor.w, h: this.anchor.h, angle: 0, conf: 0.88 };
+      }
+      if (this.face.detected && this.face.w > 0) {
+        return { x: this.face.x, y: this.face.y, w: this.face.w, h: this.face.h, angle: this.face.angle, conf: 0.8 };
+      }
       const defW = canvasW * 0.32;
       const defH = defW * 1.25;
       const defX = (canvasW - defW) / 2;
@@ -412,7 +626,7 @@ class AIFaceFilterEngine {
       fx = canvasW - (fx + fw);
     }
 
-    return { x: fx, y: fy, w: fw, h: fh, angle: 0, conf: 0.88 };
+    return { x: fx, y: fy, w: fw, h: fh, angle: 0, conf: 0.92 };
   }
 
   // =========================================================================
