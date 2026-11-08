@@ -75,11 +75,47 @@ class BeautyFilterEngine {
     const hueRotation = Math.round((warmth / 50) * 12);
     const baseFilter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) hue-rotate(${hueRotation}deg)`;
 
-    if (aspectDiff > 0.08) {
-      // A. Draw blurred cover background using low-overhead offscreen downscale
-      // Rendering to 320x180 with 4px blur and scaling up yields DSLR bokeh aesthetic with near-zero CPU/GPU cost
-      this.tempCtx.filter = 'blur(4px) brightness(45%) saturate(120%)';
-      this.tempCtx.drawImage(videoEl, 0, 0, this.tempCanvas.width, this.tempCanvas.height);
+    // Adapt offscreen buffer size to match orientation
+    const isTargetVert = height > width;
+    const reqTempW = isTargetVert ? 180 : 320;
+    const reqTempH = isTargetVert ? 320 : 180;
+    if (this.tempCanvas.width !== reqTempW || this.tempCanvas.height !== reqTempH) {
+      this.tempCanvas.width = reqTempW;
+      this.tempCanvas.height = reqTempH;
+    }
+
+    const scaleMode = this.scaleMode || 'fit'; // 'fit' (contain + blur background) or 'fill' (crop to fill screen)
+
+    if (scaleMode === 'fill' && aspectDiff > 0.02) {
+      // Zoom & crop to fill the entire canvas cleanly with no black or blurred bars
+      const scaleFill = Math.max(width / vW, height / vH);
+      const drawW = vW * scaleFill;
+      const drawH = vH * scaleFill;
+      const drawX = (width - drawW) / 2;
+      const drawY = (height - drawH) / 2;
+
+      targetCtx.filter = baseFilter;
+      targetCtx.drawImage(videoEl, drawX, drawY, drawW, drawH);
+      targetCtx.filter = 'none';
+
+      if (smooth > 5) {
+        const smoothFactor = smooth / 100;
+        const blurRadius = Math.max(1, Math.round(smoothFactor * 3.5));
+        targetCtx.save();
+        targetCtx.globalAlpha = smoothFactor * 0.38;
+        targetCtx.filter = `blur(${blurRadius}px) brightness(104%)`;
+        targetCtx.drawImage(videoEl, drawX, drawY, drawW, drawH);
+        targetCtx.restore();
+      }
+    } else if (aspectDiff > 0.04) {
+      // A. Draw blurred cover background using low-overhead offscreen downscale with proper center-crop
+      this.tempCtx.filter = 'blur(6px) brightness(45%) saturate(125%)';
+      const bgScale = Math.max(reqTempW / vW, reqTempH / vH);
+      const bgW = vW * bgScale;
+      const bgH = vH * bgScale;
+      const bgX = (reqTempW - bgW) / 2;
+      const bgY = (reqTempH - bgH) / 2;
+      this.tempCtx.drawImage(videoEl, bgX, bgY, bgW, bgH);
       this.tempCtx.filter = 'none';
 
       targetCtx.save();

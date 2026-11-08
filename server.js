@@ -42,16 +42,16 @@ async function ensureYtDlp() {
 function getFormatSelector(quality = '720') {
   switch (String(quality).toLowerCase()) {
     case '1080':
-      return 'best[height=1080][ext=mp4]/best[height<=1080][ext=mp4]/22/best[height<=720][ext=mp4]/18/best';
+      return 'best[height=1080][ext=mp4]/best[width=1080][ext=mp4]/best[height<=1080][ext=mp4]/best[width<=1080][ext=mp4]/22/best[height<=720][ext=mp4]/18/best';
     case '720':
-      return '22/best[height=720][ext=mp4]/best[height<=720][ext=mp4]/18/best';
+      return '22/best[height=720][ext=mp4]/best[width=720][ext=mp4]/best[height<=720][ext=mp4]/best[width<=720][ext=mp4]/18/best';
     case '480':
-      return 'best[height=480][ext=mp4]/best[height<=480][ext=mp4]/18/best';
+      return 'best[height=480][ext=mp4]/best[width=480][ext=mp4]/best[height<=480][ext=mp4]/best[width<=480][ext=mp4]/18/best';
     case '360':
-      return '18/best[height=360][ext=mp4]/best[height<=360][ext=mp4]/best';
+      return '18/best[height=360][ext=mp4]/best[width=360][ext=mp4]/best[height<=360][ext=mp4]/best[width<=360][ext=mp4]/best';
     case 'auto':
     default:
-      return '22/best[height<=720][ext=mp4]/18/best[ext=mp4]/best';
+      return '22/best[height<=1080][ext=mp4]/best[width<=1080][ext=mp4]/best[height<=720][ext=mp4]/18/best[ext=mp4]/best';
   }
 }
 

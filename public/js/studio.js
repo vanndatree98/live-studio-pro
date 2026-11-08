@@ -315,7 +315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       liveCanvas.height = is1080p ? 1920 : 1280;
       document.getElementById('metricRes').textContent = is1080p ? '1080x1920 (Shorts)' : '720x1280 (Shorts)';
     } else {
-      liveCanvas.width = is1080p ? 1920 : 1080;
+      liveCanvas.width = is1080p ? 1920 : 1280;
       liveCanvas.height = is1080p ? 1080 : 720;
       document.getElementById('metricRes').textContent = is1080p ? '1080p HD' : '720p HD';
     }
@@ -343,10 +343,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         'success'
       );
     }
+
+    if (isStreaming) {
+      showToast('⚠️ ការប្តូរទម្រង់ខណៈពេលកំពុង Live អាចធ្វើឱ្យ YouTube/FB បង្ហាញទំហំមិនត្រឹមត្រូវ! ប្រសិនបើខុសទំហំ សូមចុច Stop Live រួច Go Live ឡើងវិញ។', 'warning');
+    }
   }
 
   function checkAutoOrientation(videoEl) {
-    if (orientationMode !== 'auto' || !videoEl || videoEl.readyState < 1) return;
+    if (orientationMode !== 'auto' || !videoEl) return;
     const vw = videoEl.videoWidth;
     const vh = videoEl.videoHeight;
     if (!vw || !vh) return;
@@ -379,6 +383,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyOrientation('vertical');
     showToast('📱 បានប្តូរទៅទម្រង់បញ្ឈរ 9:16 (Portrait / Shorts)', 'info');
   });
+
+  // Scale Mode Toggle (Fit / Contain with Bokeh Background vs Fill / Crop full screen)
+  const btnToggleScaleMode = document.getElementById('btnToggleScaleMode');
+  const scaleModeIcon = document.getElementById('scaleModeIcon');
+  const scaleModeText = document.getElementById('scaleModeText');
+  let currentScaleMode = localStorage.getItem('yt_scale_mode') || 'fit';
+  filterEngine.scaleMode = currentScaleMode;
+
+  function updateScaleModeUI() {
+    filterEngine.scaleMode = currentScaleMode;
+    if (scaleModeIcon && scaleModeText) {
+      if (currentScaleMode === 'fill') {
+        scaleModeIcon.textContent = '↔️';
+        scaleModeText.textContent = 'ពង្រីកពេញ';
+      } else {
+        scaleModeIcon.textContent = '🔍';
+        scaleModeText.textContent = 'សមាមាត្រ';
+      }
+    }
+  }
+  updateScaleModeUI();
+
+  if (btnToggleScaleMode) {
+    btnToggleScaleMode.addEventListener('click', () => {
+      currentScaleMode = currentScaleMode === 'fit' ? 'fill' : 'fit';
+      localStorage.setItem('yt_scale_mode', currentScaleMode);
+      updateScaleModeUI();
+      showToast(
+        currentScaleMode === 'fill'
+          ? '↔️ បានប្តូរទៅ៖ ពង្រីកពេញអេក្រង់ (Crop / Fill) គ្មានគែមខ្មៅ'
+          : '🔍 បានប្តូរទៅ៖ សមាមាត្រដើម (Fit / Contain) មានផ្ទៃព្រាលស្អាត',
+        'info'
+      );
+    });
+  }
 
   // Apply Initial Orientation
   applyOrientation(orientationMode === 'vertical' ? 'vertical' : 'horizontal');
@@ -1350,6 +1389,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       fileVideo.loop = (loopMode === 'single');
       fileVideo.muted = false; // Must be false so Web Audio receives audio data
       fileVideo.crossOrigin = 'anonymous';
+
+      // Detect video dimensions as soon as metadata is available
+      const onLinkVideoReady = () => {
+        if (fileVideo.videoWidth > 0 && fileVideo.videoHeight > 0) {
+          checkAutoOrientation(fileVideo);
+        }
+      };
+      fileVideo.addEventListener('loadedmetadata', onLinkVideoReady, { once: true });
+      fileVideo.addEventListener('canplay', onLinkVideoReady, { once: true });
+      fileVideo.addEventListener('playing', onLinkVideoReady, { once: true });
+
       fileVideo.src = playUrl;
 
       // Setup audio graph routing (broadcast + speaker monitor)
@@ -1536,6 +1586,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // A. Render Video with Beauty Engine
     if (activeVid && activeVid.readyState >= 1) {
+      if (orientationMode === 'auto' && activeVid.videoWidth > 0 && activeVid.videoHeight > 0) {
+        const detected = activeVid.videoHeight > activeVid.videoWidth ? 'vertical' : 'horizontal';
+        if (detected !== currentOrientation) {
+          applyOrientation(detected, true);
+        }
+      }
       filterEngine.render(ctx, activeVid, width, height, isFlipped && activeVideoSource === 'camera');
     } else {
       drawFallbackCanvas('សូមផ្ទុកវីដេអូ ឬបើកកាមេរ៉ា (Load Video or Enable Camera)');
