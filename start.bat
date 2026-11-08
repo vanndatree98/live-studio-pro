@@ -15,6 +15,16 @@ if %errorlevel% neq 0 (
     )
 )
 
+if not exist "node_modules" (
+    echo [*] Installing required packages for the first time...
+    call npm install
+    if %errorlevel% neq 0 (
+        echo [!] npm install failed. Make sure Node.js is installed.
+        pause
+        exit /b 1
+    )
+)
+
 echo [*] Starting Live Studio Server...
 echo [*] Opening browser: http://localhost:3000
 echo.
