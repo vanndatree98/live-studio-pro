@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Binaries & Downloaded Tools
+yt-dlp.exe
+*.exe
+
+# Secrets & Sessions
+.env
+cookies.txt
+*.token
+
+# System files & Logs
+*.log
+.DS_Store
+Thumbs.db

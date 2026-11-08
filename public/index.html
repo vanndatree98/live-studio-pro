@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Live Studio - ស្ទូឌីយោ Live វីដេអូកម្រិតអាជីព</title>
+  <!-- Google Fonts: Khmer & Latin -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Inter:wght@300;400;500;600;700;800&family=Kantumruy+Pro:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Header / Top Bar -->
+  <header class="top-nav">
+    <div class="nav-left">
+      <div class="logo">
+        <span class="logo-icon">📡</span>
+        <div class="logo-text">
+          <h1>Live Studio <span>PRO</span></h1>
+          <p class="tagline">ផ្សាយផ្ទាល់ YouTube & Facebook Live</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-center">
+      <div class="live-status-pill offline" id="streamStatusPill">
+        <span class="status-dot"></span>
+        <span id="streamStatusText">OFFLINE (មិនទាន់ Live)</span>
+      </div>
+      <div class="live-timer" id="streamTimer">00:00:00</div>
+      <div class="live-metrics">
+        <span id="metricFps">30 FPS</span>
+        <span class="metric-divider">•</span>
+        <span id="metricRes">1080p</span>
+        <span class="metric-divider">•</span>
+        <span id="metricBitrate">3500 kbps</span>
+        <span class="metric-divider">•</span>
+        <span id="metricViewers" class="metric-viewers" title="ចំនួនអ្នកកំពុងទស្សនា"><span class="viewer-pulse-dot"></span> 👁️ <strong id="metricViewersCount">0</strong> នាក់</span>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <!-- Platform Selector Pill (YouTube / Facebook / Multi-Stream) -->
+      <div class="platform-selector-pill" id="platformSelectorGroup">
+        <button type="button" class="platform-btn active" id="btnPlatformYoutube" data-platform="youtube" title="ផ្សាយផ្ទាល់លើ YouTube (អាចច្រើនឆានែលព្រមគ្នា)">
+          <span class="platform-icon">🔴</span> <span id="labelPlatformYt">YouTube</span>
+          <span class="badge-ch-count" id="badgeYtCount" style="display:none;">1</span>
+        </button>
+        <button type="button" class="platform-btn" id="btnPlatformFacebook" data-platform="facebook" title="ផ្សាយផ្ទាល់លើ Facebook Live">
+          <span class="platform-icon">🔵</span> Facebook
+        </button>
+        <button type="button" class="platform-btn" id="btnPlatformBoth" data-platform="both" title="ផ្សាយផ្ទាល់ទាំង YouTube & Facebook ព្រមគ្នា (Multi-Stream)">
+          <span class="platform-icon">🔥</span> Dual (YT+FB)
+        </button>
+      </div>
+
+      <!-- Quick Channel Manage Shortcut Button -->
+      <button type="button" class="btn btn-secondary btn-sm" id="btnQuickManageChannels" title="គ្រប់គ្រងឆានែល YouTube (បើក/បិទ/បន្ថែម)">
+        📺 ឆានែល (<span id="activeChannelsCount">1</span>)
+      </button>
+
+      <button class="btn btn-secondary" id="btnOpenSettings">
+        ⚙️ ការកំណត់ (Settings)
+      </button>
+      <button class="btn btn-danger" id="btnToggleLive">
+        <span id="liveBtnIcon">🔴</span> <span id="liveBtnText">ចាប់ផ្តើម LIVE (YouTube)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Studio Layout -->
+  <main class="studio-container">
+    <!-- Left Area: Video Monitor & Control Tabs -->
+    <section class="studio-left">
+      <!-- Video Monitor Canvas Wrapper -->
+      <div class="monitor-wrapper">
+        <div class="monitor-header">
+          <div class="monitor-header-left">
+            <span class="monitor-title">📺 អេក្រង់ផ្សាយផ្ទាល់ (Program Output)</span>
+            <div class="orientation-switch-group">
+              <button class="orient-btn active" id="btnOrientAuto" title="ស្វ័យប្រវត្តិតាមវីដេអូ (Auto Detect)">🔄 ស្វ័យប្រវត្តិ</button>
+              <button class="orient-btn" id="btnOrientHoriz" title="ទម្រង់ផ្តេក 16:9 (Landscape)">🖥️ ផ្តេក (16:9)</button>
+              <button class="orient-btn" id="btnOrientVert" title="ទម្រង់បញ្ឈរ 9:16 (Portrait / Shorts)">📱 បញ្ឈរ (9:16)</button>
+            </div>
+          </div>
+          <div class="monitor-tools">
+            <button class="tool-btn active" id="btnToggleViewersQuick" title="បើក/បិទ បង្ហាញចំនួនអ្នកទស្សនាលើវីដេអូ Live (Viewer Counter)"><span id="viewersQuickIcon">👁️</span> <span id="viewersQuickText">អ្នកទស្សនា</span></button>
+            <button class="tool-btn" id="btnToggleCoverQuick" title="បើក/បិទ បង្ហាញរូបភាពគ្របលើ Live (Cover Standby)"><span id="coverQuickIcon">🖼️</span> <span id="coverQuickText">បង្ហាញរូបគ្រប (Cover)</span></button>
+            <button class="tool-btn" id="btnToggleFullscreen" title="ពង្រីកពេញអេក្រង់">⛶ Fullscreen</button>
+            <button class="tool-btn" id="btnCaptureSnap" title="ថតរូបអេក្រង់">📸 Screenshot</button>
+          </div>
+        </div>
+
+        <div class="canvas-container" id="canvasContainer">
+          <!-- Main Output Canvas (Streamed to YouTube) -->
+          <canvas id="liveCanvas" width="1920" height="1080"></canvas>
+          <!-- Hidden video element capturing user webcam/screen -->
+          <video id="hiddenVideo" playsinline autoplay muted style="display:none;"></video>
+          <!-- Video element for local uploaded video file (routed via Web Audio, isolated from local speakers) -->
+          <video id="fileVideo" playsinline loop style="display:none;"></video>
+          <!-- Audio element for background music (BGM) routed via Web Audio into live stream & monitor -->
+          <audio id="bgmAudio" playsinline style="display:none;"></audio>
+          
+          <!-- Over-the-canvas Active Badge if any -->
+          <div class="live-watermark-overlay" id="overlayWatermarkBadge" style="display:none;">
+            <span class="dot"></span> <span id="overlayWatermarkText">LIVE HD</span>
+          </div>
+        </div>
+
+        <!-- Video Player Control Bar (Visible when Local Video File is active) -->
+        <div class="video-player-bar" id="videoPlayerBar" style="display:none;">
+          <div class="video-player-top">
+            <div class="file-pick-wrapper">
+              <label class="btn btn-sm btn-primary btn-file-upload" title="ជ្រើសរើសវីដេអូមួយ ឬច្រើនភាគ">
+                📂 ផ្ទុកវីដេអូច្រើនភាគ (Add Episodes)
+                <input type="file" id="inputVideoFile" multiple accept="video/mp4,video/webm,video/ogg,video/mkv,video/quicktime,video/*" style="display:none;">
+              </label>
+              <div class="current-episode-info">
+                <span class="badge-episode" id="badgeCurrentEpisode">ភាគ 0/0</span>
+                <span class="video-file-name" id="videoFileName">មិនទាន់បានជ្រើសរើសវីដេអូ</span>
+              </div>
+            </div>
+            <div class="video-player-opts">
+              <!-- Playlist Drawer Toggle Button -->
+              <button class="btn btn-sm btn-secondary" id="btnTogglePlaylist" type="button" title="មើល និងគ្រប់គ្រងបញ្ជីភាគវីដេអូ">
+                📋 បញ្ជីភាគ (<span id="playlistCountBadge">0</span>)
+              </button>
+              <!-- Loop Mode Dropdown -->
+              <div class="loop-select-wrapper" title="របៀបចាក់សារឡើងវិញ">
+                <select id="selectLoopMode" class="form-select form-select-sm loop-select">
+                  <option value="all" selected>🔁 វិលជុំគ្រប់ភាគ (Loop All)</option>
+                  <option value="single">🔂 វិលជុំភាគនេះ (Loop Single)</option>
+                  <option value="none">➡️ ចាក់ចប់ឈប់ (Play Once)</option>
+                </select>
+              </div>
+              <label class="video-monitor-label" title="បើកដើម្បីស្តាប់សម្លេងវីដេអូក្នុងកាសផ្ទាល់ខ្លួន (លំនាំដើម៖ បិទកុំឱ្យឮចេញមកក្រៅ)">
+                <input type="checkbox" id="checkMonitorAudio">
+                <span>🎧 ស្តាប់ក្នុងកាស (Monitor)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Video Player Controls -->
+          <div class="video-player-controls">
+            <!-- Episode Navigation & Transport Controls -->
+            <button class="btn btn-icon btn-sm" id="btnPrevEpisode" type="button" title="ភាគមុន (Previous Episode)">
+              <span>⏮️</span>
+            </button>
+            <button class="btn btn-icon btn-sm" id="btnSeekBack" type="button" title="ថយក្រោយ 10 វិនាទី (-10s)">
+              <span>⏪</span>
+            </button>
+            <button class="btn btn-icon btn-sm btn-play-main" id="btnPlayPauseVideo" type="button" title="Play / Pause">
+              <span id="playPauseIcon">▶️</span>
+            </button>
+            <button class="btn btn-icon btn-sm" id="btnSeekForward" type="button" title="ទៅមុខ 10 វិនាទី (+10s)">
+              <span>⏩</span>
+            </button>
+            <button class="btn btn-icon btn-sm" id="btnNextEpisode" type="button" title="ភាគបន្ទាប់ (Next Episode)">
+              <span>⏭️</span>
+            </button>
+
+            <!-- Time Display & Scrubber -->
+            <span class="video-time" id="videoTimeCurrent">00:00</span>
+            <input type="range" id="videoScrubber" min="0" max="100" value="0" step="0.1" class="video-scrubber" title="រំកិលវីដេអូ">
+            <span class="video-time" id="videoTimeDuration">00:00</span>
+
+            <!-- Volume Control -->
+            <span class="vol-icon" title="កម្រិតសម្លេងវីដេអូ">🔊</span>
+            <input type="range" id="sliderVideoVolume" min="0" max="100" value="100" class="video-vol-slider" title="កម្រិតសម្លេងវីដេអូ">
+          </div>
+
+          <!-- Playlist Drawer (Accordion / Collapsible Panel) -->
+          <div class="playlist-drawer" id="playlistDrawer" style="display:none;">
+            <div class="playlist-header">
+              <div class="playlist-title">
+                <span>🎬 បញ្ជីភាគវីដេអូ (Episodes Queue)</span>
+                <span class="playlist-summary" id="playlistSummaryText">0 ភាគ</span>
+              </div>
+              <div class="playlist-actions">
+                <label class="btn btn-xs btn-outline-primary" style="cursor:pointer;" title="បន្ថែមភាគវីដេអូទៀត">
+                  ➕ បន្ថែមភាគទៀត
+                  <input type="file" id="inputAddMoreVideos" multiple accept="video/mp4,video/webm,video/ogg,video/mkv,video/quicktime,video/*" style="display:none;">
+                </label>
+                <button class="btn btn-xs btn-outline-danger" id="btnClearPlaylist" type="button" title="សម្អាតបញ្ជីទាំងអស់">
+                  🗑️ សម្អាត
+                </button>
+              </div>
+            </div>
+            <div class="playlist-items-container" id="playlistItemsContainer">
+              <div class="playlist-empty-notice">មិនទាន់មានវីដេអូនៅឡើយទេ។ សូមចុច «ផ្ទុកវីដេអូច្រើនភាគ» ដើម្បីបញ្ចូល!</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Link Source Panel (YouTube / Facebook / TV URL Input) -->
+        <div class="link-source-bar" id="linkSourceBar" style="display:none;">
+          <div class="link-source-header">
+            <div class="link-header-left">
+              <span class="link-source-title">🔗 ប្រភពវីដេអូពី Link (YouTube / Facebook / TV)</span>
+              <span class="link-source-hint">📌 បញ្ចូល URL វីដេអូ YouTube, Facebook Live, ឬ TV Stream</span>
+            </div>
+            <div class="link-auto-opts">
+              <label class="link-switch-label" title="ភ្ជាប់ និងចាក់វីដេអូដោយស្វ័យប្រវត្តពេលបិទភ្ជាប់ Link">
+                <input type="checkbox" id="checkAutoConnectLink" checked>
+                <span>⚡ ភ្ជាប់ស្វ័យប្រវត្តិ (Auto-Connect)</span>
+              </label>
+              <label class="link-switch-label" title="ភ្ជាប់ឡើងវិញដោយស្វ័យប្រវត្តពេលដាច់ Live">
+                <input type="checkbox" id="checkAutoReconnectLink" checked>
+                <span>🔁 ភ្ជាប់ឡើងវិញពេលដាច់ (Auto-Reconnect)</span>
+              </label>
+            </div>
+          </div>
+          <div class="link-source-input-row">
+            <button class="btn btn-secondary btn-sm" id="btnPasteLink" type="button" title="បិទភ្ជាប់ពី Clipboard (Paste & Connect)">
+              📋 បិទភ្ជាប់
+            </button>
+            <input type="url" id="inputLinkUrl" class="form-input link-url-input" 
+              placeholder="https://www.youtube.com/watch?v=... ឬ @ChannelName ឬ http://tv-stream.m3u8"
+              autocomplete="off" spellcheck="false">
+            <div class="link-quality-wrap" title="ជ្រើសរើសកម្រិតច្បាស់ (Quality)">
+              <select id="selectLinkQuality" class="form-select form-select-sm link-quality-select">
+                <option value="1080">🌟 1080p Full HD</option>
+                <option value="720" selected>📺 720p HD</option>
+                <option value="480">📱 480p SD</option>
+                <option value="360">⚡ 360p ស្រាល</option>
+                <option value="auto">🔄 ស្វ័យប្រវត្តិ</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btnLoadLink" type="button">
+              ▶️ ចាក់វីដេអូ
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btnClearLink" type="button" title="សម្អាតចេញ">
+              ✖
+            </button>
+          </div>
+          <div class="link-source-status" id="linkSourceStatus" style="display:none;"></div>
+          <!-- Link Audio & Transport Controls -->
+          <div class="link-source-controls-row" id="linkControlsRow" style="display:none;">
+            <button class="btn btn-sm btn-secondary" id="btnLinkPlayPause" type="button" title="ចាក់ / ផ្អាក">
+              <span id="linkPlayIcon">⏸️</span> <span id="linkPlayText">ផ្អាក</span>
+            </button>
+            <button class="btn btn-sm btn-primary" id="btnToggleLinkAudio" type="button" title="បិទ/បើក សម្លេងស្ដាប់ក្នុងកុំព្យូទ័រ">
+              <span id="linkAudioIcon">🔊</span> <span id="linkAudioText">សម្លេងកាស៖ បើក</span>
+            </button>
+            <div class="link-vol-wrap">
+              <span class="link-vol-label">🔊 សម្លេង៖</span>
+              <input type="range" id="sliderLinkVolume" min="0" max="150" value="100" class="volume-slider-sm" title="កម្រិតសម្លេងវីដេអូ">
+              <span id="linkVolumeText" class="link-vol-val">100%</span>
+            </div>
+            <span class="link-audio-badge">✨ សម្លេងចូល Live + ឮក្នុងកុំព្យូទ័រ</span>
+          </div>
+          <div class="link-quick-presets">
+            <span class="link-preset-label">ឧទាហរណ៍ប្រភេទ Link:</span>
+            <span class="link-preset-tag">📺 YouTube Live</span>
+            <span class="link-preset-tag">🔵 Facebook Live</span>
+            <span class="link-preset-tag">📡 TV Stream (M3U8/HLS)</span>
+            <span class="link-preset-tag">🎞️ Direct MP4/WebM</span>
+          </div>
+        </div>
+
+        <!-- Media Devices & Quick Control Bar -->
+        <div class="monitor-controls">
+          <div class="control-group">
+            <label>ប្រភពវីដេអូ (Video Source):</label>
+            <select id="selectVideoSource" class="form-select">
+              <option value="camera">📷 ម៉ាស៊ីនថត (Webcam)</option>
+              <option value="screen">🖥️ ចែករំលែកអេក្រង់ (Screen Share)</option>
+              <option value="file">📂 ផ្ទុកវីដេអូពីកុំព្យូទ័រ (Video File)</option>
+              <option value="link">🔗 Link YouTube / Facebook / TV (URL)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <button class="btn btn-icon" id="btnToggleMic" title="បិទ/បើក មីក្រូហ្វូន">
+              <span id="micIcon">🎙️</span>
+            </button>
+            <div class="audio-vu-meter">
+              <div class="audio-vu-bar" id="audioVuBar"></div>
+            </div>
+            <input type="range" id="sliderMicVolume" min="0" max="150" value="100" title="កម្រិតសម្លេង" class="volume-slider">
+          </div>
+
+          <!-- Quick BGM Mini Controller -->
+          <div class="control-group quick-bgm-group" id="quickBgmGroup">
+            <button class="btn btn-icon btn-sm" id="btnQuickBgmPlay" type="button" title="ចាក់ / ផ្អាក ភ្លេងអម (BGM Play/Pause)">
+              <span id="quickBgmIcon">🎵</span>
+            </button>
+            <div class="quick-bgm-info" id="quickBgmInfo" title="ចុចដើម្បីបើកផ្ទាំង BGM">
+              <span class="quick-bgm-label">BGM:</span>
+              <span class="quick-bgm-title" id="quickBgmTitle">គ្មានភ្លេង (No Music)</span>
+            </div>
+            <input type="range" id="quickBgmVolume" min="0" max="100" value="35" title="កម្រិតសម្លេង BGM (Stream Volume)" class="volume-slider-sm">
+            <button class="btn btn-xs btn-ghost" id="btnQuickOpenBgmTab" type="button" title="បើកផ្ទាំងចម្រៀងអម (Open BGM Tab)">⚙️ បញ្ជី</button>
+          </div>
+
+          <div class="control-group ml-auto">
+            <button class="btn btn-sm btn-ghost" id="btnQuickFlip">🔄 ត្រឡប់កាមេរ៉ា (Flip Horizontal)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Studio Control Panels (Tabs) -->
+      <div class="studio-tabs-card">
+        <div class="tab-headers">
+          <button class="tab-btn active" data-tab="tab-beauty">✨ តម្រងសម្រស់ (Beauty Filters)</button>
+          <button class="tab-btn" data-tab="tab-text">📝 តួអក្សរ & បដា (Overlays & Ticker)</button>
+          <button class="tab-btn" data-tab="tab-banner">🛍️ ផ្ទាំងលក់ផលិតផល 1-5 (Promo Carousel)</button>
+          <button class="tab-btn" data-tab="tab-thumbnail">🖼️ រូបភាពគ្រប (Thumbnail & Standby)</button>
+          <button class="tab-btn" data-tab="tab-bgm">🎵 ចម្រៀងអម & សម្លេង (BGM Player)</button>
+          <button class="tab-btn" data-tab="tab-viewers">👁️ មនុស្សពិតកំពុងទស្សនា (Real Viewers)</button>
+        </div>
+
+        <div class="tab-contents">
+          <!-- TAB 1: BEAUTY FILTERS -->
+          <div class="tab-panel active" id="tab-beauty">
+            <div class="preset-section">
+              <label class="section-label">🌟 ស្ទាយសម្រស់ស្វ័យប្រវត្តិ (Quick Beauty Presets):</label>
+              <div class="preset-buttons">
+                <button class="preset-btn active" data-preset="natural">🌸 ធម្មជាតិស្រស់ថ្លា (Natural)</button>
+                <button class="preset-btn" data-preset="korea">✨ ស្បែកសម៉ដ្ឋបែបកូរ៉េ (Rosy Glow)</button>
+                <button class="preset-btn" data-preset="warm">☀️ ពន្លឺកក់ក្តៅ (Golden Sun)</button>
+                <button class="preset-btn" data-preset="cool">🎬 ភាពយន្តត្រជាក់ (Cinema Cool)</button>
+                <button class="preset-btn" data-preset="sharp">💎 ច្បាស់ដិតខ្លាំង (Ultra Sharp)</button>
+                <button class="preset-btn" data-preset="noir">🖤 សខ្មៅបែប Studio (Noir B&W)</button>
+              </div>
+            </div>
+
+            <div class="sliders-grid">
+              <!-- Skin Smooth / Beauty Glow -->
+              <div class="slider-box highlight">
+                <div class="slider-label-row">
+                  <span>✨ រលោងស្បែក & ភ្លឺស្រទន់ (Skin Smooth)</span>
+                  <span class="val" id="valSmooth">45%</span>
+                </div>
+                <input type="range" id="filterSmooth" min="0" max="100" value="45" class="slider-control">
+              </div>
+
+              <!-- Brightness -->
+              <div class="slider-box">
+                <div class="slider-label-row">
+                  <span>☀️ បង្កើនពន្លឺ (Brightness)</span>
+                  <span class="val" id="valBrightness">110%</span>
+                </div>
+                <input type="range" id="filterBrightness" min="60" max="150" value="110" class="slider-control">
+              </div>
+
+              <!-- Contrast -->
+              <div class="slider-box">
+                <div class="slider-label-row">
+                  <span>🌓 កម្រិតពណ៌ដិត (Contrast)</span>
+                  <span class="val" id="valContrast">105%</span>
+                </div>
+                <input type="range" id="filterContrast" min="60" max="140" value="105" class="slider-control">
+              </div>
+
+              <!-- Saturation -->
+              <div class="slider-box">
+                <div class="slider-label-row">
+                  <span>🎨 ភាពស្រស់នៃពណ៌ (Saturation)</span>
+                  <span class="val" id="valSaturation">115%</span>
+                </div>
+                <input type="range" id="filterSaturation" min="50" max="160" value="115" class="slider-control">
+              </div>
+
+              <!-- Warmth -->
+              <div class="slider-box">
+                <div class="slider-label-row">
+                  <span>🌡️ សម្លេងពណ៌ក្តៅ/ត្រជាក់ (Color Warmth)</span>
+                  <span class="val" id="valWarmth">+10%</span>
+                </div>
+                <input type="range" id="filterWarmth" min="-50" max="50" value="10" class="slider-control">
+              </div>
+
+              <!-- Rosy Blush -->
+              <div class="slider-box">
+                <div class="slider-label-row">
+                  <span>💄 ពណ៌ផ្កាឈូកស៊ីជម្ពូ (Rosy Blush)</span>
+                  <span class="val" id="valRosy">15%</span>
+                </div>
+                <input type="range" id="filterRosy" min="0" max="50" value="15" class="slider-control">
+              </div>
+            </div>
+
+            <div class="panel-actions">
+              <button class="btn btn-sm btn-ghost" id="btnResetBeauty">🔄 កំណត់ដើមឡើងវិញ (Reset Filters)</button>
+            </div>
+          </div>
+
+          <!-- TAB 2: TEXT & OVERLAYS -->
+          <div class="tab-panel" id="tab-text">
+            <!-- Lower Third / Headline Banner -->
+            <div class="overlay-card">
+              <div class="overlay-card-header">
+                <label class="switch-container">
+                  <input type="checkbox" id="checkLowerThird" checked>
+                  <span class="switch-slider"></span>
+                </label>
+                <span class="card-title">📛 បដាឈ្មោះ & ចំណងជើង (Lower Third Banner)</span>
+              </div>
+              <div class="overlay-card-body" id="bodyLowerThird">
+                <div class="input-row">
+                  <div class="field">
+                    <label>ចំណងជើងធំ (Main Title / ឈ្មោះអ្នក Live):</label>
+                    <input type="text" id="inputL3Title" class="form-input" value="🔴 PHEANG SA | កំពុងផ្សាយផ្ទាល់" placeholder="ឧ. ឈ្មោះរបស់អ្នក ឬប្រធានបទ">
+                  </div>
+                  <div class="field">
+                    <label>ចំណងជើងរង (Subtitle / ការពិពណ៌នា):</label>
+                    <input type="text" id="inputL3Subtitle" class="form-input" value="សូមស្វាគមន៍! សូមចុច Like & Subscribe ដើម្បីទទួលបានវីដេអូថ្មីៗ" placeholder="ព័ត៌មានលម្អិត">
+                  </div>
+                </div>
+                <div class="theme-picker-row">
+                  <label>ម៉ូតពណ៌បដា (Style):</label>
+                  <div class="style-chips">
+                    <button class="chip-btn active" data-style="youtube">🔴 YouTube Red</button>
+                    <button class="chip-btn" data-style="royal">🔵 Royal Blue</button>
+                    <button class="chip-btn" data-style="emerald">🟢 Emerald Green</button>
+                    <button class="chip-btn" data-style="gold">🟡 Luxury Gold</button>
+                    <button class="chip-btn" data-style="dark">⚫ Dark Glass</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Scrolling Marquee Ticker -->
+            <div class="overlay-card">
+              <div class="overlay-card-header">
+                <label class="switch-container">
+                  <input type="checkbox" id="checkTicker" checked>
+                  <span class="switch-slider"></span>
+                </label>
+                <span class="card-title">🏃 អក្សររត់នៅខាងក្រោម (Bottom Scrolling Ticker)</span>
+              </div>
+              <div class="overlay-card-body" id="bodyTicker">
+                <div class="field">
+                  <label>អត្ថបទរត់ (Ticker Text):</label>
+                  <input type="text" id="inputTickerText" class="form-input" value="🎉 សូមស្វាគមន៍មកកាន់ការ Live! ទំនាក់ទំនងទូរស័ព្ទ៖ 012 345 678 | ABA: 000 123 456 (PHEANG SA) | Telegram: @pheangsa" placeholder="បញ្ចូលអត្ថបទរត់នៅទីនេះ...">
+                </div>
+                <div class="input-row">
+                  <div class="field">
+                    <label>ល្បឿនរត់ (Speed):</label>
+                    <select id="selectTickerSpeed" class="form-select">
+                      <option value="1.5">🐢 យឺត (Slow)</option>
+                      <option value="2.5" selected>🚶 មធ្យម (Normal)</option>
+                      <option value="4.0">🏎️ លឿន (Fast)</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>ពណ៌ផ្ទៃក្រោយ (Background):</label>
+                    <select id="selectTickerBg" class="form-select">
+                      <option value="rgba(20, 20, 25, 0.9)" selected>ខ្មៅស្រាល (Dark Matte)</option>
+                      <option value="rgba(220, 38, 38, 0.9)">ក្រហម (YouTube Red)</option>
+                      <option value="rgba(37, 99, 235, 0.9)">ខៀវ (Ocean Blue)</option>
+                      <option value="rgba(16, 185, 129, 0.9)">បៃតង (Fresh Green)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Top Corner Watermark / Logo -->
+            <div class="overlay-card">
+              <div class="overlay-card-header">
+                <label class="switch-container">
+                  <input type="checkbox" id="checkWatermark" checked>
+                  <span class="switch-slider"></span>
+                </label>
+                <span class="card-title">🏷️ សញ្ញា Live ជ្រុងលើ (Top Corner Badge)</span>
+              </div>
+              <div class="overlay-card-body" id="bodyWatermark">
+                <div class="input-row">
+                  <div class="field">
+                    <label>អត្ថបទផ្លាកសញ្ញា (Badge Text):</label>
+                    <input type="text" id="inputWatermarkText" class="form-input" value="LIVE 🔴 1080p HD">
+                  </div>
+                  <div class="field">
+                    <label>ទីតាំង (Position):</label>
+                    <select id="selectWatermarkPos" class="form-select">
+                      <option value="top-right" selected>ជ្រុងលើស្តាំ (Top Right)</option>
+                      <option value="top-left">ជ្រុងលើឆ្វេង (Top Left)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: PROMO & CONTACT CARD (1-2-3-4-5 CAROUSEL WITH SLIDE ANIMATIONS) -->
+          <div class="tab-panel" id="tab-banner">
+            <div class="overlay-card">
+              <div class="overlay-card-header">
+                <label class="switch-container">
+                  <input type="checkbox" id="checkPromoCard">
+                  <span class="switch-slider"></span>
+                </label>
+                <span class="card-title">🛍️ ផ្ទាំងលក់ផលិតផល ឬទំនាក់ទំនង (Product Cards 1-2-3-4-5 Carousel)</span>
+              </div>
+              <div class="overlay-card-body" id="bodyPromoCard">
+                <!-- 1. Motion & Layout Settings Bar -->
+                <div class="promo-settings-grid">
+                  <div class="field">
+                    <label>ទីតាំងបង្ហាញលើវីដេអូ:</label>
+                    <select id="selectPromoPos" class="form-select">
+                      <option value="top-left" selected>ខាងលើឆ្វេង (Top Left)</option>
+                      <option value="top-right">ខាងលើស្តាំ (Top Right)</option>
+                      <option value="bottom-right">ខាងក្រោមស្តាំ (Bottom Right)</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>ទិសដៅចលនាស្លាយ (Slide Motion):</label>
+                    <select id="selectPromoSlideDir" class="form-select">
+                      <option value="left-to-right" selected>➡️ ពីឆ្វេងទៅស្តាំ (Slide Left to Right)</option>
+                      <option value="right-to-left">⬅️ ពីស្តាំទៅឆ្វេង (Slide Right to Left)</option>
+                      <option value="alternate">↔️ ឆ្លាស់គ្នា ឆ្វេង-ស្តាំ-ឆ្វេង (Alternate)</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>ពណ៌ស្ទាយបដា (Theme Style):</label>
+                    <select id="selectPromoTheme" class="form-select">
+                      <option value="gold" selected>🌟 មាសប្រណិត (Luxury Gold)</option>
+                      <option value="emerald">💎 បៃតងត្បូង (Emerald Green)</option>
+                      <option value="ruby">🔴 ក្រហមត្បូង (Ruby Red)</option>
+                      <option value="royal">🔵 ខៀវរាជវង្ស (Royal Blue)</option>
+                      <option value="purple">🟣 ស្វាយទាក់ទាញ (Cyber Purple)</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <label style="margin-bottom:0;">ប្តូរស្វ័យប្រវត្តិ (Auto):</label>
+                      <label class="inline-checkbox-label" style="font-size:11px; cursor:pointer;">
+                        <input type="checkbox" id="checkPromoAutoRotate" checked> បើកប្តូរតាមពេល
+                      </label>
+                    </div>
+                    <select id="selectPromoInterval" class="form-select">
+                      <option value="3000">⚡ 3 វិនាទី (លឿន)</option>
+                      <option value="6000" selected>⏱️ 6 វិនាទី (លំនាំដើម)</option>
+                      <option value="8000">⏱️ 8 វិនាទី</option>
+                      <option value="10000">⏱️ 10 វិនាទី</option>
+                      <option value="15000">⏱️ 15 វិនាទី (យឺត)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- 2. Product Selector Pills Bar & Transport Controls -->
+                <div class="promo-navigation-card">
+                  <div class="promo-nav-header">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                      <span class="section-label" style="margin-bottom: 0;">🎯 ជ្រើសរើសផលិតផលដើម្បីកែប្រែ ឬបញ្ចាំងលើ Live ភ្លាមៗ:</span>
+                      <span class="badge-count" id="badgeProductCount" style="font-size: 11px; background: rgba(255, 255, 255, 0.1); color: #93c5fd; padding: 2px 8px; border-radius: 10px; font-weight: 700;">5 ផលិតផល</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                      <div class="promo-live-indicator" id="promoLiveIndicator">
+                        <span class="pulse-dot"></span> <span id="textCurrentLiveProduct">កំពុងបង្ហាញលើ Live៖ ផលិតផល #1</span>
+                      </div>
+                      <button type="button" class="btn btn-sm btn-success" id="btnAddProduct" title="បន្ថែមផលិតផលថ្មីចូលក្នុងបញ្ជី (Add New Product)">
+                        ➕ បន្ថែមផលិតផល (Add Product)
+                      </button>
+                    </div>
+                  </div>
+                  <div class="promo-pills-row">
+                    <button type="button" class="btn btn-sm btn-icon" id="btnPrevPromo" title="ថយទៅផលិតផលមុន (Slide Previous)">⏮️</button>
+                    <div class="promo-pills-list" id="promoPillsList">
+                      <!-- Rendered dynamically via renderPromoPills() -->
+                    </div>
+                    <button type="button" class="btn btn-sm btn-icon" id="btnNextPromo" title="ទៅផលិតផលបន្ទាប់ (Slide Next)">⏭️</button>
+                  </div>
+                </div>
+
+                <!-- 3. Active Product Editor Form -->
+                <div class="promo-item-editor-box">
+                  <div class="editor-box-header">
+                    <div class="editor-title-row">
+                      <span class="editor-title" id="editorCurrentTitle">📝 កែប្រែព័ត៌មាន៖ ផលិតផលទី ១</span>
+                      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <label class="inline-checkbox-label" style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                          <input type="checkbox" id="checkItemEnabled" checked>
+                          <span>បើកបង្ហាញផលិតផលនេះលើ Live</span>
+                        </label>
+                        <button type="button" class="btn btn-xs btn-ghost" id="btnDeleteCurrentProduct" style="color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); font-size: 11px; padding: 2px 8px; border-radius: 4px;" title="លុបផលិតផលនេះចេញពីបញ្ជី">
+                          🗑️ លុបផលិតផលនេះ
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Product Image Upload & Preview Row -->
+                  <div class="product-image-uploader-row">
+                    <div class="product-thumb-preview" id="productThumbPreview">
+                      <div class="product-thumb-placeholder" id="placeholderProductThumb">
+                        <span>🖼️ គ្មានរូប</span>
+                      </div>
+                      <img id="imgProductPreview" alt="Product Image" style="display:none;">
+                    </div>
+                    <div class="product-image-controls">
+                      <label class="section-label" style="margin-bottom: 4px; font-size: 12px;">🖼️ រូបភាពផលិតផល (Product Image):</label>
+                      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <label class="btn btn-primary btn-sm btn-file-upload" style="cursor: pointer; margin-bottom: 0;">
+                          📷 ជ្រើសរើសរូបភាព...
+                          <input type="file" id="inputProductImage" accept="image/png,image/jpeg,image/webp,image/jpg" style="display:none;">
+                        </label>
+                        <button type="button" class="btn btn-ghost btn-sm" id="btnRemoveProductImage" style="display:none;">🗑️ លុបរូប</button>
+                      </div>
+                      <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">
+                        💡 គាំទ្ររូបភាព JPG, PNG, WEBP (កាត់តម្រឹម 1:1 បង្ហាញលើ Live យ៉ាងស្អាត)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="input-row">
+                    <div class="field" style="max-width: 220px;">
+                      <label>ផ្លាកសម្គាល់ (Badge Tag):</label>
+                      <input type="text" id="inputPromoBadge" class="form-input" value="🔥 ផលិតផល #1">
+                    </div>
+                    <div class="field">
+                      <label>ចំណងជើងផលិតផល (Title):</label>
+                      <input type="text" id="inputPromoTitle" class="form-input" value="🔥 ផលិតផលទី ១៖ ឈុតប្រូម៉ូសិនពិសេស">
+                    </div>
+                  </div>
+                  <div class="input-row">
+                    <div class="field" style="max-width: 280px;">
+                      <label>តម្លៃ ឬការបញ្ចុះតម្លៃ (Price):</label>
+                      <input type="text" id="inputPromoPrice" class="form-input" value="$19.99 (បញ្ចុះ 50%)">
+                    </div>
+                    <div class="field">
+                      <label>ព័ត៌មានលម្អិត ឬទំនាក់ទំនង (Details / Contact):</label>
+                      <input type="text" id="inputPromoDesc" class="form-input" value="📦 ដឹកជញ្ជូនឥតគិតថ្លៃ | Inbox ឬខល 012 345 678">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 4. Quick Sample Templates Batch Fill -->
+                <div class="promo-presets-row">
+                  <span class="section-label" style="margin-bottom:0; font-size: 12px;">⚡ គំរូទិន្នន័យស្រាប់ៗទាំង ៥ ផលិតផល (Quick Samples 1-5):</span>
+                  <div class="preset-buttons" style="gap: 6px;">
+                    <button type="button" class="preset-btn btn-sm" id="btnSampleGeneral">🏬 ទំនិញទូទៅ</button>
+                    <button type="button" class="preset-btn btn-sm" id="btnSampleTech">📱 គ្រឿងអេឡិចត្រូនិក</button>
+                    <button type="button" class="preset-btn btn-sm" id="btnSampleFashion">👗 សម្លៀកបំពាក់</button>
+                    <button type="button" class="preset-btn btn-sm" id="btnSampleFood">🍔 ម្ហូបអាហារ</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 4: THUMBNAIL COVER & STANDBY SCREEN -->
+          <div class="tab-panel" id="tab-thumbnail">
+            <div class="overlay-card">
+              <div class="overlay-card-header">
+                <label class="switch-container">
+                  <input type="checkbox" id="checkThumbnailCover">
+                  <span class="switch-slider"></span>
+                </label>
+                <span class="card-title">🖼️ បង្ហាញរូបភាពគ្របលើអេក្រង់ផ្សាយផ្ទាល់ (Live Thumbnail / Standby Cover)</span>
+              </div>
+              <div class="overlay-card-body" id="bodyThumbnailCover">
+                <!-- Preset Templates Selection -->
+                <div class="preset-section">
+                  <label class="section-label">🎨 គំរូផ្ទាំង Standby ស្អាតៗរហ័ស (Quick Cover Presets):</label>
+                  <div class="preset-buttons">
+                    <button class="preset-btn active" data-cover-preset="starting">🔴 ផ្សាយផ្ទាល់ឆាប់ៗ (Starting Soon)</button>
+                    <button class="preset-btn" data-cover-preset="brb">☕ សម្រាកបន្តិច (Be Right Back)</button>
+                    <button class="preset-btn" data-cover-preset="podcast">🎙️ កម្មវិធីជជែក (Podcast Talk)</button>
+                    <button class="preset-btn" data-cover-preset="shop">🛍️ ផ្សាយលក់ទំនិញ (Live Shopping)</button>
+                    <button class="preset-btn" data-cover-preset="gaming">🎮 កម្សាន្តហ្គេម (Gaming Live)</button>
+                  </div>
+                </div>
+
+                <!-- Custom Thumbnail Upload & Preview -->
+                <div class="thumbnail-upload-grid">
+                  <div class="thumbnail-file-col">
+                    <label class="section-label">📁 ផ្ទុករូបភាព Thumbnail ផ្ទាល់ខ្លួនពីកុំព្យូទ័រ (JPG / PNG / WEBP):</label>
+                    <div class="file-pick-wrapper" style="margin-bottom: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                      <label class="btn btn-primary btn-sm btn-file-upload" style="cursor: pointer; margin-bottom: 0;">
+                        📷 ជ្រើសរើសរូបភាព Thumbnail...
+                        <input type="file" id="inputThumbnailFile" accept="image/png,image/jpeg,image/webp,image/jpg" style="display:none;">
+                      </label>
+                      <button class="btn btn-ghost btn-sm" id="btnRemoveThumbnailImage" type="button" style="display:none;">🗑️ លុបរូបភាពចេញ</button>
+                    </div>
+                    <div class="thumbnail-preview-box" id="thumbnailPreviewBox">
+                      <div class="thumbnail-preview-placeholder" id="placeholderThumbnail">
+                        <span>🖼️ មិនទាន់មានរូបភាពផ្ទុកឡើង<br><small style="color: var(--text-muted); font-size: 11px;">(កំពុងប្រើពណ៌ស្ទាយ Standby Gradient ស្វ័យប្រវត្តិ)</small></span>
+                      </div>
+                      <img id="imgThumbnailPreview" alt="Thumbnail Preview" style="display:none;">
+                    </div>
+                  </div>
+
+                  <div class="thumbnail-settings-col">
+                    <div class="field">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label style="margin-bottom: 0;">ចំណងជើងធំលើរូបភាព (Cover Title):</label>
+                        <label class="inline-checkbox-label" style="font-size: 11px; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 4px; color: var(--text-muted);">
+                          <input type="checkbox" id="checkCoverShowText" checked> បង្ហាញអក្សរលើរូប
+                        </label>
+                      </div>
+                      <input type="text" id="inputCoverTitle" class="form-input" value="🔴 ការផ្សាយផ្ទាល់នឹងចាប់ផ្តើមឆាប់ៗ...">
+                    </div>
+                    <div class="field">
+                      <label>ចំណងជើងរង (Subtitle):</label>
+                      <input type="text" id="inputCoverSubtitle" class="form-input" value="សូមរង់ចាំបន្តិច! សូមកុំភ្លេចជួយ Like & Share ម្នាក់មួយ">
+                    </div>
+                    <div class="input-row">
+                      <div class="field">
+                        <label>ទម្រង់បង្ហាញលើ Live (Display Mode):</label>
+                        <select id="selectCoverMode" class="form-select">
+                          <option value="fullscreen" selected>📺 ពេញអេក្រង់ (Fullscreen Standby)</option>
+                          <option value="pip">🔲 រូបតូចជ្រុងលើឆ្វេង (Picture-in-Picture)</option>
+                        </select>
+                      </div>
+                      <div class="field">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                          <label style="margin-bottom: 0;">កម្រិតស្រមោលខ្មៅក្រោយអក្សរ (Darkness Overlay):</label>
+                          <span id="labelCoverDarkness" class="val" style="font-size: 12px; font-weight: 700; color: var(--primary-light);">40%</span>
+                        </div>
+                        <input type="range" id="sliderCoverDarkness" min="0" max="90" value="40" class="slider-control">
+                      </div>
+                    </div>
+                    <div class="thumbnail-actions" style="margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap;">
+                      <button class="btn btn-success btn-sm" id="btnExportThumbnail" type="button" title="ទាញយករូបភាព Thumbnail កម្រិតច្បាស់ HD សម្រាប់យកទៅ Upload លើ YouTube Studio ឬ Facebook">
+                        📥 ទាញយករូប Thumbnail HD (Download PNG)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 5: BACKGROUND MUSIC & AUDIO MIXER (BGM PLAYER) -->
+          <div class="tab-panel" id="tab-bgm">
+            <div class="bgm-container">
+              <!-- Top Card: Now Playing Hero & Transport Controls -->
+              <div class="bgm-hero-card">
+                <div class="bgm-hero-header">
+                  <div class="bgm-hero-info">
+                    <div class="bgm-title-row">
+                      <span class="bgm-now-label">🎵 កំពុងចាក់អម (Now Playing):</span>
+                      <span class="bgm-status-pill empty" id="bgmCurrentStatus">⏹️ គ្មានចម្រៀង</span>
+                      <span class="badge-format mp3" id="bgmFormatBadge" style="display:none;">MP3</span>
+                      <span class="badge-ducking" id="bgmDuckingBadge" style="display:none;">🎙️ Auto-Ducked</span>
+                    </div>
+                    <h3 class="bgm-current-title" id="bgmCurrentTitle">មិនទាន់មានចម្រៀង (No Music Loaded)</h3>
+                  </div>
+                  <!-- Visualizer Wave Bars Animation -->
+                  <div class="bgm-wave-animation" id="bgmWaveAnimation">
+                    <span></span><span></span><span></span><span></span><span></span><span></span>
+                  </div>
+                </div>
+
+                <!-- Time Scrubber Bar -->
+                <div class="bgm-scrubber-row">
+                  <span class="bgm-time-text" id="bgmTimeCurrent">00:00</span>
+                  <input type="range" id="bgmScrubber" min="0" max="100" value="0" step="0.1" class="bgm-scrubber" title="រំកិលចម្រៀង (Seek)">
+                  <span class="bgm-time-text" id="bgmTimeDuration">00:00</span>
+                </div>
+
+                <!-- Transport & Loop Controls Bar -->
+                <div class="bgm-transport-row">
+                  <div class="bgm-transport-buttons">
+                    <button type="button" class="btn btn-icon btn-sm" id="btnBgmPrev" title="បទមុន (Previous Track)">⏮️</button>
+                    <button type="button" class="btn btn-icon btn-play-main" id="btnBgmPlayPause" title="ចាក់ / ផ្អាក (Play/Pause)">
+                      <span id="bgmPlayPauseIcon">▶️</span>
+                    </button>
+                    <button type="button" class="btn btn-icon btn-sm" id="btnBgmNext" title="បទបន្ទាប់ (Next Track)">⏭️</button>
+                    <button type="button" class="btn btn-icon btn-sm" id="btnBgmStop" title="បញ្ឈប់ (Stop)">⏹️</button>
+                  </div>
+
+                  <!-- Loop Mode Chips -->
+                  <div class="bgm-loop-chips">
+                    <button type="button" class="bgm-loop-btn active" data-loop="all" title="ចាក់វិលជុំបញ្ជីទាំងអស់ (Loop All)">🔁 វិលជុំទាំងអស់</button>
+                    <button type="button" class="bgm-loop-btn" data-loop="single" title="ចាក់វិលជុំបទដដែល (Loop Single Track)">🔂 មួយបទដដែល</button>
+                    <button type="button" class="bgm-loop-btn" data-loop="shuffle" title="ចាក់ចៃដន្យ (Shuffle)">🔀 ចៃដន្យ</button>
+                    <button type="button" class="bgm-loop-btn" data-loop="none" title="ចាក់ចប់ឈប់ (Play Once)">⏹️ ចប់ឈប់</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Audio Mixing & Ducking Controls Card -->
+              <div class="bgm-mixer-card">
+                <div class="mixer-title-row">
+                  <span class="section-label" style="margin-bottom:0;">🎛️ ការកំណត់កម្រិតសម្លេង & ការបញ្ជូនទៅ Live (Audio Mixer & Routing)</span>
+                </div>
+                <div class="bgm-mixer-grid">
+                  <!-- Stream Volume (Mixed into YouTube / Facebook Live) -->
+                  <div class="mixer-box highlight">
+                    <div class="mixer-box-header">
+                      <span>🔊 កម្រិតសម្លេងភ្លេងចូល Live (Broadcast Volume):</span>
+                      <span class="mixer-val" id="labelBgmVolumeVal">35%</span>
+                    </div>
+                    <input type="range" id="sliderBgmVolume" min="0" max="100" value="35" class="slider-control" title="កម្រិតសម្លេងដែលទស្សនិកជនលើ YouTube/Facebook បានឮ">
+                    <small class="mixer-hint">💡 ណែនាំចន្លោះ 25% - 40% ដើម្បីកុំឱ្យលុបសម្លេងនិយាយរបស់អ្នក</small>
+                  </div>
+
+                  <!-- Headphone / Local Speaker Monitor Volume -->
+                  <div class="mixer-box">
+                    <div class="mixer-box-header">
+                      <label class="inline-checkbox-label" style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+                        <input type="checkbox" id="checkBgmMonitor" checked>
+                        <span>🎧 ស្តាប់ក្នុងកាស (Local Monitor)</span>
+                      </label>
+                      <span class="mixer-val" id="labelBgmMonitorVal">35%</span>
+                    </div>
+                    <input type="range" id="sliderBgmMonitorVol" min="0" max="100" value="35" class="slider-control" title="កម្រិតសម្លេងដែលអ្នកស្តាប់ឮផ្ទាល់ក្នុងកាស">
+                    <small class="mixer-hint">💡 បើប្រើ Speaker លើកុំព្យូទ័រ សូមបិទដើម្បីកុំឱ្យខ្ទរចូល Mic</small>
+                  </div>
+
+                  <!-- Smart Auto-Ducking -->
+                  <div class="mixer-box">
+                    <div class="mixer-box-header">
+                      <label class="inline-checkbox-label" style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+                        <input type="checkbox" id="checkBgmAutoDucking" checked>
+                        <span>🎙️ បន្ថយភ្លេងស្វ័យប្រវត្តពេលនិយាយ (Auto-Ducking)</span>
+                      </label>
+                    </div>
+                    <div class="ducking-status-row">
+                      <span class="duck-pill">⚡ ដំណើរការស្វ័យប្រវត្តិ</span>
+                      <small style="color:var(--text-muted); font-size:11px;">ពេលអ្នកនិយាយតាម Mic ភ្លេងនឹងបន្ថយសម្លេងអូតូ 75% យ៉ាងរលូន</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Playlist Management Card -->
+              <div class="bgm-playlist-card">
+                <div class="playlist-header">
+                  <div class="playlist-title">
+                    <span>📑 បញ្ជីបទចម្រៀងអម (Playlist Queue)</span>
+                    <span class="playlist-summary" id="bgmTotalCountBadge">0 បទ</span>
+                  </div>
+                  <div class="playlist-actions">
+                    <label class="btn btn-primary btn-sm btn-file-upload" style="cursor:pointer; margin-bottom:0;" title="ផ្ទុកចម្រៀង MP3 ឬ WAV ច្រើនបទ">
+                      📂 ផ្ទុកចម្រៀង MP3 / WAV
+                      <input type="file" id="inputBgmFiles" multiple accept="audio/mp3,audio/wav,audio/ogg,audio/aac,audio/m4a,audio/flac,audio/*" style="display:none;">
+                    </label>
+                    <label class="btn btn-secondary btn-sm" style="cursor:pointer; margin-bottom:0;" title="បន្ថែមបទទៀតចូលបញ្ជី">
+                      ➕ បន្ថែមបទទៀត
+                      <input type="file" id="inputBgmAddMore" multiple accept="audio/mp3,audio/wav,audio/ogg,audio/aac,audio/m4a,audio/flac,audio/*" style="display:none;">
+                    </label>
+                    <button type="button" class="btn btn-ghost btn-sm" id="btnBgmGenerateDemo" title="បង្កើតភ្លេងគំរូ Chill & Relax ឥតគិតថ្លៃ 3 បទ">
+                      ✨ ភ្លេងគំរូ Chill & Relax
+                    </button>
+                    <button type="button" class="btn btn-ghost btn-sm text-danger" id="btnBgmClear" title="សម្អាតបញ្ជីទាំងអស់">
+                      🗑️ សម្អាត
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Drag & Drop Zone -->
+                <div class="bgm-drop-zone" id="bgmDropZone">
+                  <span class="drop-icon">📥</span>
+                  <span>ទម្លាក់ហ្វាល MP3 ឬ WAV ទីនេះ ឬចុច «ផ្ទុកចម្រៀង» ខាងលើ</span>
+                </div>
+
+                <!-- Items Container -->
+                <div class="bgm-playlist-items" id="bgmPlaylistItems">
+                  <!-- Rendered dynamically via renderPlaylistUI() -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 6: REAL LIVE VIEWER COUNTER MANAGER (មនុស្សពិតកំពុងទស្សនា) -->
+          <div class="tab-panel" id="tab-viewers">
+            <div class="viewers-container">
+
+              <!-- Top Hero Card: Big Metric & Status & Breakdown -->
+              <div class="viewer-hero-card">
+                <div class="viewer-hero-left">
+                  <div class="viewer-hero-badge-row">
+                    <span class="badge-viewer-tag real" id="badgeViewerTag">🛡️ មនុស្សពិតជាក់ស្តែង (Real Viewers)</span>
+                    <span class="badge-viewer-status standby" id="badgeViewerStatus">⚪ រង់ចាំ Live (Standby)</span>
+                    <span class="badge-viewer-trend" id="badgeViewerTrend">➡️ ថេរ</span>
+                  </div>
+                  <div class="viewer-big-counter-display">
+                    <span class="viewer-hero-pulse-dot"></span>
+                    <h2 class="viewer-hero-number" id="viewersHeroCount">0</h2>
+                    <span class="viewer-hero-unit">នាក់ (មនុស្សពិតកំពុងមើល Live)</span>
+                  </div>
+                  <p class="viewer-hero-desc">ប្រព័ន្ធរាប់ចំនួនមនុស្សពិតជាក់ស្តែងដែលកំពុងទស្សនាការ Live របស់អ្នកលើ YouTube, Facebook និង Web Player</p>
+                  
+                  <!-- Real Viewers Breakdown Pills -->
+                  <div class="real-viewers-breakdown-bar" id="realBreakdownPill">
+                    <span class="breakdown-chip yt">🔴 YouTube: <strong id="countRealYt">0</strong> នាក់</span>
+                    <span class="breakdown-chip fb">🔵 Facebook: <strong id="countRealFb">0</strong> នាក់</span>
+                    <span class="breakdown-chip web">🌐 Web/LAN: <strong id="countRealWeb">0</strong> នាក់</span>
+                    <button type="button" class="btn btn-xs btn-outline-primary" id="btnRefreshAllReal" title="ពិនិត្យមើលមនុស្សពិតឡើងវិញ">🔄 ពិនិត្យឡើងវិញ (Refresh)</button>
+                  </div>
+                </div>
+                <div class="viewer-hero-actions">
+                  <button type="button" class="btn btn-primary" id="btnToggleViewerOverlay">
+                    👁️ បង្ហាញលើវីដេអូ (ON)
+                  </button>
+                  <button type="button" class="btn btn-ghost text-danger" id="btnViewerReset" title="កំណត់ចំនួនឡើងវិញ">
+                    🔄 Reset
+                  </button>
+                </div>
+              </div>
+
+              <!-- 3 Operating Modes Selection -->
+              <div class="viewer-modes-card">
+                <div class="viewer-card-title-row">
+                  <span class="viewer-card-title">⚙️ ជ្រើសរើសរបៀបរាប់ចំនួនអ្នកទស្សនា (Operating Mode):</span>
+                </div>
+                <div class="viewer-mode-tabs">
+                  <button type="button" class="viewer-mode-tab-btn active" data-viewer-mode="real">
+                    <span class="mode-icon">🛡️</span>
+                    <span class="mode-text">
+                      <strong>តាមដានមនុស្សពិត (Real Viewers 100%)</strong>
+                      <small>រាប់ចំនួនមនុស្សពិតដែលកំពុងមើលលើ YouTube, Facebook និង Web</small>
+                    </span>
+                  </button>
+                  <button type="button" class="viewer-mode-tab-btn" data-viewer-mode="auto">
+                    <span class="mode-icon">🔄</span>
+                    <span class="mode-text">
+                      <strong>ចលនាស្វ័យប្រវត្តិ (Realistic Auto-Traffic)</strong>
+                      <small>រាប់ឡើងចុះតាមចលនាធម្មជាតិ (សម្រាប់តេស្តទូទៅ)</small>
+                    </span>
+                  </button>
+                  <button type="button" class="viewer-mode-tab-btn" data-viewer-mode="manual">
+                    <span class="mode-icon">✏️</span>
+                    <span class="mode-text">
+                      <strong>កំណត់ដោយដៃ (Manual Control)</strong>
+                      <small>កំណត់ចំនួនថេរ និងប៊ូតុង Quick Bump (+10, +50, +100)</small>
+                    </span>
+                  </button>
+                </div>
+
+                <!-- Mode 1: Real Viewers Setup Panel (Default) -->
+                <div class="viewer-mode-panel" id="modeRealPanel">
+                  <div class="real-sources-grid">
+                    <!-- Source 1: YouTube Live Real Viewers -->
+                    <div class="real-source-box">
+                      <div class="source-header">
+                        <span class="source-icon">🔴</span>
+                        <div class="source-title-wrap">
+                          <strong>មនុស្សពិតលើ YouTube Live</strong>
+                          <span class="source-status-text" id="statusYtReal">មិនទាន់ភ្ជាប់</span>
+                        </div>
+                      </div>
+                      <div class="form-group field">
+                        <label class="form-label-sm">YouTube Live Link, Video ID ឬ Channel Handle:</label>
+                        <div class="input-with-btn">
+                          <input type="text" id="inputRealYtUrl" class="form-input form-input-sm" placeholder="ឧ. https://youtube.com/live/... ឬ @channel">
+                          <button type="button" class="btn btn-primary btn-sm" id="btnFetchRealYt">🔍 ភ្ជាប់ & ទាញយក</button>
+                        </div>
+                        <small class="form-hint">បញ្ចូល Link នៃវីដេអូ Live លើ YouTube របស់អ្នកដើម្បីចាប់យកមនុស្សពិត</small>
+                      </div>
+                      <div class="form-group field" style="margin-top: 6px;">
+                        <label class="form-label-sm">YouTube Data API Key (ស្រេចចិត្ត):</label>
+                        <input type="password" id="inputRealYtApiKey" class="form-input form-input-sm" placeholder="បញ្ចូល API Key ប្រសិនបើមាន">
+                      </div>
+                    </div>
+
+                    <!-- Source 2: Facebook Live Real Viewers -->
+                    <div class="real-source-box">
+                      <div class="source-header">
+                        <span class="source-icon">🔵</span>
+                        <div class="source-title-wrap">
+                          <strong>មនុស្សពិតលើ Facebook Live</strong>
+                          <span class="source-status-text" id="statusFbReal">មិនទាន់ភ្ជាប់</span>
+                        </div>
+                      </div>
+                      <div class="form-group field">
+                        <label class="form-label-sm">Facebook Live Video URL ឬ Video ID:</label>
+                        <div class="input-with-btn">
+                          <input type="text" id="inputRealFbUrl" class="form-input form-input-sm" placeholder="ឧ. https://facebook.com/.../videos/...">
+                          <button type="button" class="btn btn-primary btn-sm" id="btnFetchRealFb">🔍 ភ្ជាប់ & ទាញយក</button>
+                        </div>
+                        <small class="form-hint">បញ្ចូល Link នៃវីដេអូ Live លើ Facebook របស់អ្នក</small>
+                      </div>
+                    </div>
+
+                    <!-- Source 3: Local Network / Web Viewers -->
+                    <div class="real-source-box span-2">
+                      <div class="source-header">
+                        <span class="source-icon">🌐</span>
+                        <div class="source-title-wrap">
+                          <strong>មនុស្សពិតមើលតាម Browser / Wi-Fi / LAN (Web Player)</strong>
+                          <span class="source-badge-online">កំពុងមើល៖ <strong id="countRealWebBadge">0</strong> នាក់</span>
+                        </div>
+                      </div>
+                      <div class="lan-share-row">
+                        <div class="lan-url-box">
+                          <span class="lan-url-label">🔗 Link សម្រាប់ចែករំលែកឱ្យទូរស័ព្ទ/កុំព្យូទ័រមើលផ្ទាល់៖</span>
+                          <code class="lan-url-text" id="textWatchUrl">http://localhost:3000/watch</code>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" id="btnCopyWatchUrl">📋 ចម្លង Link (Copy Link)</button>
+                      </div>
+                      <small class="form-hint">💡 <strong>របៀបប្រើ</strong>៖ ផ្ញើ Link នេះឱ្យទូរស័ព្ទ iPad ឬកុំព្យូទ័រផ្សេងក្នុងផ្ទះ/ការិយាល័យបើកមើល នោះប្រព័ន្ធនឹងរាប់វត្តមានរបស់ពួកគាត់ជា <strong>មនុស្សពិត ១០០%</strong> ភ្លាមៗ!</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Mode 2: Auto Simulation Panel -->
+                <div class="viewer-mode-panel" id="modeAutoPanel" style="display:none;">
+                  <div class="panel-inner-grid">
+                    <div class="form-group field">
+                      <div class="label-with-val">
+                        <label class="form-label">🎯 ចំនួនអ្នកទស្សនាគោល (Base Viewers):</label>
+                        <input type="number" id="inputBaseViewers" class="num-indicator" value="150" min="0" max="50000">
+                      </div>
+                      <input type="range" id="sliderBaseViewers" min="10" max="2500" value="150" step="10" class="form-range">
+                      <small class="form-hint">ចំនួនមធ្យមដែលចលនានឹងប្រែប្រួលជុំវិញនេះ</small>
+                    </div>
+
+                    <div class="form-group field">
+                      <div class="label-with-val">
+                        <label class="form-label">📈 ទិសដៅចរាចរណ៍ (Traffic Trend):</label>
+                      </div>
+                      <select id="selectViewerTrend" class="form-select">
+                        <option value="stable" selected>➡️ ប្រែប្រួលធម្មជាតិ (Natural Fluctuation)</option>
+                        <option value="growing">↗️ កើនឡើងសន្សឹមៗ (Steady Growth)</option>
+                        <option value="dropping">↘️ ថយចុះសន្សឹមៗ (Slight Decay)</option>
+                      </select>
+                    </div>
+
+                    <div class="form-group field">
+                      <div class="label-with-val">
+                        <label class="form-label">🌊 កម្រិតរលកប្រែប្រួល (Fluctuation Variance):</label>
+                        <span class="num-indicator" id="labelViewerVariance">±8%</span>
+                      </div>
+                      <input type="range" id="sliderViewerVariance" min="2" max="25" value="8" step="1" class="form-range">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Mode 3: Manual Control Panel -->
+                <div class="viewer-mode-panel" id="modeManualPanel" style="display:none;">
+                  <div class="viewer-quick-bump-card" style="border:none; padding:0; background:transparent;">
+                    <div class="viewer-card-title-row">
+                      <span class="viewer-card-title">⚡ បង្កើន / បន្ថយ ចំនួនអ្នកទស្សនាបន្ទាន់ (Quick Bump):</span>
+                    </div>
+                    <div class="viewer-bump-grid">
+                      <div class="viewer-bump-buttons">
+                        <button type="button" class="btn-bump plus" data-viewer-bump="5">+5</button>
+                        <button type="button" class="btn-bump plus" data-viewer-bump="10">+10</button>
+                        <button type="button" class="btn-bump plus" data-viewer-bump="50">+50</button>
+                        <button type="button" class="btn-bump plus" data-viewer-bump="100">+100</button>
+                        <button type="button" class="btn-bump plus" data-viewer-bump="500">+500</button>
+                        <button type="button" class="btn-bump minus" data-viewer-bump="-5">-5</button>
+                        <button type="button" class="btn-bump minus" data-viewer-bump="-10">-10</button>
+                        <button type="button" class="btn-bump minus" data-viewer-bump="-50">-50</button>
+                        <button type="button" class="btn-bump minus" data-viewer-bump="-100">-100</button>
+                      </div>
+                      <div class="viewer-direct-input-group">
+                        <label class="form-label-sm">បញ្ចូលចំនួនផ្ទាល់ (Direct Set):</label>
+                        <div class="input-with-btn">
+                          <input type="number" id="inputDirectViewerCount" class="form-input form-input-sm" min="0" placeholder="ឧ. 250">
+                          <button type="button" class="btn btn-primary btn-sm" id="btnApplyDirectCount">✅ កំណត់ (Set)</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Appearance & Overlay Settings Card -->
+              <div class="viewer-overlay-config-card">
+                <div class="viewer-card-title-row">
+                  <span class="viewer-card-title">🎨 ការរៀបចំផ្ទាំង Badge លើវីដេអូ Live (On-Screen Badge):</span>
+                </div>
+
+                <div class="overlay-config-grid">
+                  <!-- Style / Theme Selector -->
+                  <div class="form-group field">
+                    <label class="form-label">🎭 ពណ៌ និងស្ទាយ Badge (Theme Style):</label>
+                    <div class="viewer-theme-chips">
+                      <button type="button" class="theme-chip-btn active" data-viewer-style="glass">🖤 Dark Glass</button>
+                      <button type="button" class="theme-chip-btn" data-viewer-style="youtube">🔴 YouTube Red</button>
+                      <button type="button" class="theme-chip-btn" data-viewer-style="facebook">🔵 Facebook Blue</button>
+                      <button type="button" class="theme-chip-btn" data-viewer-style="emerald">🟢 Neon Emerald</button>
+                      <button type="button" class="theme-chip-btn" data-viewer-style="gold">✨ Royal Gold</button>
+                    </div>
+                  </div>
+
+                  <!-- Position Selector -->
+                  <div class="form-group field">
+                    <label class="form-label">📍 ទីតាំងលើអេក្រង់ (Position):</label>
+                    <select id="selectViewerPos" class="form-select">
+                      <option value="top-left" selected>↖️ ខាងឆ្វេងលើ (Top-Left - ណែនាំ)</option>
+                      <option value="top-right">↗️ ខាងស្តាំលើ (Top-Right)</option>
+                      <option value="bottom-left">↙️ ខាងឆ្វេងក្រោម (Bottom-Left)</option>
+                      <option value="bottom-right">↘️ ខាងស្តាំក្រោម (Bottom-Right)</option>
+                    </select>
+                  </div>
+
+                  <!-- Label Input -->
+                  <div class="form-group field">
+                    <label class="form-label">📝 អក្សរអម (Badge Label):</label>
+                    <input type="text" id="inputViewerLabel" class="form-input" value="កំពុងទស្សនា" placeholder="ឧ. កំពុងទស្សនា, Watching...">
+                    <div class="label-preset-chips">
+                      <button type="button" class="chip-sm" data-viewer-label-preset="កំពុងទស្សនា">កំពុងទស្សនា</button>
+                      <button type="button" class="chip-sm" data-viewer-label-preset="នាក់">នាក់</button>
+                      <button type="button" class="chip-sm" data-viewer-label-preset="Watching">Watching</button>
+                      <button type="button" class="chip-sm" data-viewer-label-preset="Viewers">Viewers</button>
+                      <button type="button" class="chip-sm" data-viewer-label-preset="">គ្មានអក្សរ</button>
+                    </div>
+                  </div>
+
+                  <!-- Format & Toggles -->
+                  <div class="form-group field">
+                    <label class="form-label">🔢 ទម្រង់លេខ (Number Format):</label>
+                    <select id="selectViewerFormat" class="form-select">
+                      <option value="number" selected>1,250 (លេខពេញ មានក្បៀស)</option>
+                      <option value="compact">1.2K / 1.5M (កាត់ខ្លី Compact)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group field span-2 toggle-row">
+                    <label class="form-checkbox-label">
+                      <input type="checkbox" id="checkViewerOverlayEnabled" checked>
+                      <span>👁️ បើកបង្ហាញលើផ្ទាំងវីដេអូ Live (Show Overlay on Stream)</span>
+                    </label>
+                    <label class="form-checkbox-label">
+                      <input type="checkbox" id="checkViewerShowDot" checked>
+                      <span>🔴 បង្ហាញ Live Dot ភ្លឹបភ្លែត (Pulsing Dot)</span>
+                    </label>
+                    <label class="form-checkbox-label">
+                      <input type="checkbox" id="checkViewerShowEye" checked>
+                      <span>👁️ បង្ហាញរូបសញ្ញាភ្នែក (Eye Icon)</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Area: YouTube Live Comment Manager -->
+    <aside class="studio-right">
+      <div class="chat-manager-card">
+        <!-- Chat Header -->
+        <div class="chat-header">
+          <div class="chat-header-left">
+            <span class="chat-icon">💬</span>
+            <div class="chat-titles">
+              <h2>គ្រប់គ្រង Comment ផ្ទាល់</h2>
+              <p>YouTube Live Chat Management</p>
+            </div>
+          </div>
+          <span class="chat-count-badge" id="chatCountBadge">0 មតិ</span>
+        </div>
+
+        <!-- Pinned Comment Bar (The comment showing on live stream) -->
+        <div class="pinned-comment-box" id="pinnedCommentBox" style="display:none;">
+          <div class="pinned-header">
+            <span class="pinned-label">📌 កំពុងបង្ហាញលើវីដេអូ (Pinned On Video)</span>
+            <button class="btn-dismiss" id="btnDismissPinned" title="ដកចេញពីអេក្រង់">✕ បិទចេញ</button>
+          </div>
+          <div class="pinned-content">
+            <div class="comment-author-avatar" id="pinnedAvatar">👤</div>
+            <div class="comment-details">
+              <strong id="pinnedAuthor">ឈ្មោះអ្នក Comment</strong>
+              <p id="pinnedText">ខ្លឹមសារ Comment...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Connection & Simulator Bar -->
+        <div class="chat-connect-section">
+          <div class="connect-tabs">
+            <button class="subtab-btn active" id="btnTabSimulator">⚡ Simulator (តេស្តលឿន)</button>
+            <button class="subtab-btn" id="btnTabYoutubeApi">🔗 ភ្ជាប់ YouTube Live</button>
+          </div>
+
+          <!-- Simulator Box -->
+          <div class="connect-content" id="panelSimulator">
+            <div class="sim-actions">
+              <button class="btn btn-sm btn-primary" id="btnSimulateComment">
+                ➕ បង្កើត Comment តេស្ត (Add Test Comment)
+              </button>
+              <button class="btn btn-sm btn-ghost" id="btnAutoSimulate">
+                ▶️ តេស្តស្វ័យប្រវត្ត (Auto Stream Chat)
+              </button>
+            </div>
+          </div>
+
+          <!-- YouTube Live Connect Box -->
+          <div class="connect-content" id="panelYoutubeApi" style="display:none;">
+            <div class="field">
+              <input type="text" id="inputYtVideoId" class="form-input form-input-sm" placeholder="YouTube Video ID (ឧ. dQw4w9WgXcQ)">
+            </div>
+            <div class="field">
+              <input type="password" id="inputYtApiKey" class="form-input form-input-sm" placeholder="Google API Key (ជម្រើស)">
+            </div>
+            <button class="btn btn-sm btn-secondary w-100" id="btnConnectYtChat">
+              🔄 ទាញយក Live Chat ពី YouTube
+            </button>
+          </div>
+        </div>
+
+        <!-- Search & Filter Bar -->
+        <div class="chat-filter-bar">
+          <input type="text" id="inputSearchChat" class="form-input form-input-sm" placeholder="🔍 ស្វែងរក Comment...">
+          <label class="filter-checkbox" title="លាក់ពាក្យមិនសមរម្យស្វ័យប្រវត្តិ">
+            <input type="checkbox" id="checkBadWordsFilter" checked>
+            <span>🛡️ Auto Filter</span>
+          </label>
+        </div>
+
+        <!-- Comments Feed List -->
+        <div class="comments-list" id="commentsList">
+          <!-- Comments will be dynamically inserted here -->
+          <div class="empty-chat-state" id="emptyChatState">
+            <div class="empty-icon">💬</div>
+            <p>មិនទាន់មាន Comment នៅឡើយទេ</p>
+            <small>ចុចប៊ូតុង "➕ បង្កើត Comment តេស្ត" ឬភ្ជាប់ YouTube ដើម្បីចាប់ផ្តើម</small>
+          </div>
+        </div>
+
+        <!-- Quick Post / Streamer Note Bar -->
+        <div class="chat-input-bar">
+          <input type="text" id="inputManualComment" class="form-input form-input-sm" placeholder="សរសេរសំណួរ ឬ Comment ដើម្បី Pin លើអេក្រង់...">
+          <button class="btn btn-sm btn-primary" id="btnSendManualComment">📌 Pin</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Modal: Stream & Video Settings -->
+  <div class="modal-backdrop" id="settingsModal" style="display:none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h3>⚙️ ការកំណត់ការផ្សាយផ្ទាល់ (Live Stream Settings)</h3>
+          <p class="modal-subtitle">YouTube Live & Facebook Live Configuration</p>
+        </div>
+        <button class="modal-close" id="btnCloseSettings">✕</button>
+      </div>
+
+      <!-- Settings Navigation Tabs -->
+      <div class="settings-nav-tabs">
+        <button type="button" class="settings-tab-btn active" id="tabSettingsYt">
+          <span>🔴 YouTube Live</span>
+        </button>
+        <button type="button" class="settings-tab-btn" id="tabSettingsFb">
+          <span>🔵 Facebook Live</span>
+        </button>
+        <button type="button" class="settings-tab-btn" id="tabSettingsDevice">
+          <span>⚙️ គុណភាព & ឧបករណ៍</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Tab 1: YouTube Live Settings (Multi-Channel Manager) -->
+        <div class="settings-tab-pane" id="paneSettingsYt">
+          <div class="yt-manager-header">
+            <div class="yt-manager-title">
+              <h4>🔴 គ្រប់គ្រងឆានែល YouTube (Multi-Channel Live Stream)</h4>
+              <p>កំណត់ Stream Key នៃឆានែលនីមួយៗ ដើម្បីផ្សាយផ្ទាល់ចូលច្រើនឆានែលព្រមគ្នាក្នុងពេលតែមួយ</p>
+            </div>
+            <button type="button" class="btn btn-sm btn-primary" id="btnAddYtChannel" title="បន្ថែមឆានែល YouTube ថ្មី">
+              ➕ បន្ថែមឆានែល (Add Channel)
+            </button>
+          </div>
+
+          <!-- YouTube Channels List -->
+          <div class="yt-channels-list" id="ytChannelsList">
+            <!-- Dynamically rendered via renderYtChannels() in studio.js -->
+          </div>
+
+          <!-- Fallback hidden fields for compatibility -->
+          <input type="hidden" id="inputRtmpUrl" value="rtmp://a.rtmp.youtube.com/live2">
+          <input type="hidden" id="inputStreamKey" value="">
+
+          <div class="yt-help-card">
+            <small class="form-help">
+              💡 <strong>របៀប Live ច្រើនឆានែលព្រមគ្នា៖</strong><br>
+              ១. ចុចប៊ូតុង <strong>«➕ បន្ថែមឆានែល (Add Channel)»</strong> ខាងលើដើម្បីបង្កើតឆានែលបន្ថែម (ឆានែលទី ១, ទី ២, ទី ៣...)<br>
+              ២. ចូលទៅកាន់ <strong>YouTube Studio</strong> នៃឆានែលនីមួយៗ &gt; ចម្លង <strong>Stream Key</strong> មកបិទភ្ជាប់តាមឆានែលរៀងៗខ្លួន<br>
+              ៣. បើកកុងតាក់ (ON) លើឆានែលណាដែលអ្នកចង់ផ្សាយផ្ទាល់ រួចចុច <strong>រក្សាទុក (Save Settings)</strong>។ ពេលចុច «ចាប់ផ្តើម LIVE» វីដេអូ និងសម្លេងនឹងត្រូវរុញទៅគ្រប់ឆានែលដែលបានបើកព្រមគ្នាតែម្តង!
+            </small>
+          </div>
+        </div>
+
+        <!-- Tab 2: Facebook Live Settings -->
+        <div class="settings-tab-pane" id="paneSettingsFb" style="display:none;">
+          <div class="form-group">
+            <label class="form-label">
+              <span>Facebook Server URL:</span>
+              <small class="text-muted">(RTMPS សុវត្ថិភាពខ្ពស់)</small>
+            </label>
+            <input type="text" id="inputFbRtmpUrl" class="form-input" value="rtmps://live-api-s.facebook.com:443/rtmp/">
+            <div class="url-preset-chips" style="display:flex;gap:6px;margin-top:6px;">
+              <button type="button" class="chip-btn active" id="btnFbUrlRtmps" title="Port 443 សុវត្ថិភាព">🔒 RTMPS Port 443 (លំនាំដើម Facebook)</button>
+              <button type="button" class="chip-btn" id="btnFbUrlRtmp" title="Port 80">📡 RTMP Port 80</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span class="required">Facebook Stream Key:</span>
+              <small class="text-muted">(ចម្លងពី Facebook Live Producer)</small>
+            </label>
+            <div class="password-wrapper">
+              <input type="password" id="inputFbStreamKey" class="form-input" placeholder="FB-xxxxxxxxxxxxxxxxxxxxxxxxxx">
+              <button type="button" class="btn-toggle-eye" id="btnToggleFbStreamKey">👁️</button>
+            </div>
+            <small class="form-help">
+              💡 <strong>របៀបយក Facebook Stream Key:</strong><br>
+              ១. ចូលទៅកាន់ Facebook ផ្ទាល់ខ្លួន ឬ Page របស់អ្នក<br>
+              ២. ចុចប៊ូតុង <strong>ផ្សាយផ្ទាល់ (Live video)</strong> ឬចូលទៅ <a href="https://www.facebook.com/live/producer" target="_blank" style="color:#60a5fa;text-decoration:underline;">facebook.com/live/producer</a><br>
+              ៣. ជ្រើសរើស <strong>Streaming software</strong> &gt; ចម្លងយក <strong>Stream Key</strong> មកបិទភ្ជាប់ទីនេះ។
+            </small>
+          </div>
+        </div>
+
+        <!-- Tab 3: Video Quality, Audio & Device Selection -->
+        <div class="settings-tab-pane" id="paneSettingsDevice" style="display:none;">
+          <div class="input-row">
+            <div class="form-group field">
+              <label class="form-label">ទម្រង់ Live (Orientation):</label>
+              <select id="selectDefaultOrientation" class="form-select">
+                <option value="auto" selected>🔄 ស្វ័យប្រវត្តិតាមវីដេអូ (Auto-Detect)</option>
+                <option value="horizontal">🖥️ ផ្តេក 16:9 (Landscape - PC/TV)</option>
+                <option value="vertical">📱 បញ្ឈរ 9:16 (Portrait - Shorts/Reels)</option>
+              </select>
+            </div>
+            <div class="form-group field">
+              <label class="form-label">កម្រិតវីដេអូ (Quality):</label>
+              <select id="selectResolution" class="form-select">
+                <option value="1080p60">1080p (60 FPS) - គុណភាពខ្ពស់បំផុត (ត្រូវការ PC ខ្លាំង)</option>
+                <option value="1080p30" selected>1080p (30 FPS) - ស្តង់ដារទូទៅ</option>
+                <option value="720p60">720p (60 FPS)</option>
+                <option value="720p30">720p (30 FPS) - រលូនបំផុត មិនទាក់ (ណែនាំពេល Live ច្រើនឆានែល)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="input-row">
+            <div class="form-group field">
+              <label class="form-label">ល្បឿន Bitrate (Video):</label>
+              <select id="selectBitrate" class="form-select">
+                <option value="6000k">6000 kbps (1080p60 - ត្រូវការ Net Upload > 15 Mbps)</option>
+                <option value="4500k">4500 kbps (1080p30 ច្បាស់ល្អ)</option>
+                <option value="3500k" selected>3500 kbps (លំនាំដើម 1080p30)</option>
+                <option value="2500k">2500 kbps (720p - រលូនល្អ សន្សំ Internet)</option>
+                <option value="2000k">2000 kbps (720p - សម្រាប់ Internet ខ្សោយ / Multi-Stream)</option>
+              </select>
+            </div>
+            <div class="form-group field">
+              <label class="form-label">កម្រិតសម្លេង Audio Bitrate:</label>
+              <select id="selectAudioBitrate" class="form-select">
+                <option value="192k">192 kbps (Hi-Fi Studio)</option>
+                <option value="128k" selected>128 kbps (លំនាំដើម)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="input-row">
+            <div class="form-group field">
+              <label class="form-label">ជ្រើសរើស Webcam:</label>
+              <select id="selectCameraDevice" class="form-select">
+                <option value="">កំពុងស្វែងរក Device...</option>
+              </select>
+            </div>
+            <div class="form-group field">
+              <label class="form-label">ជ្រើសរើស Microphone:</label>
+              <select id="selectMicDevice" class="form-select">
+                <option value="">កំពុងស្វែងរក Device...</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelSettings">បោះបង់ (Cancel)</button>
+        <button class="btn btn-primary" id="btnSaveSettings">រក្សាទុក (Save Settings)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div class="toast-notification" id="toastNotification"></div>
+
+  <!-- Script Modules -->
+  <script src="js/filters.js"></script>
+  <script src="js/overlays.js"></script>
+  <script src="js/comments.js"></script>
+  <script src="js/bgm.js"></script>
+  <script src="js/viewers.js"></script>
+  <script src="js/studio.js"></script>
+</body>
+</html>
