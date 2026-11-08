@@ -305,6 +305,7 @@
       <div class="studio-tabs-card">
         <div class="tab-headers">
           <button class="tab-btn active" data-tab="tab-beauty">✨ តម្រងសម្រស់ (Beauty Filters)</button>
+          <button class="tab-btn" data-tab="tab-face-filters">🎭 Filter AI ផ្ទៃមុខ (Face Filters)</button>
           <button class="tab-btn" data-tab="tab-text">📝 តួអក្សរ & បដា (Overlays & Ticker)</button>
           <button class="tab-btn" data-tab="tab-banner">🛍️ ផ្ទាំងលក់ផលិតផល 1-5 (Promo Carousel)</button>
           <button class="tab-btn" data-tab="tab-thumbnail">🖼️ រូបភាពគ្រប (Thumbnail & Standby)</button>
@@ -385,6 +386,107 @@
 
             <div class="panel-actions">
               <button class="btn btn-sm btn-ghost" id="btnResetBeauty">🔄 កំណត់ដើមឡើងវិញ (Reset Filters)</button>
+            </div>
+          </div>
+
+          <!-- TAB: AI FACE FILTERS -->
+          <div class="tab-panel" id="tab-face-filters">
+            <div class="face-filter-header">
+              <div class="face-filter-switch-row">
+                <label class="switch-container">
+                  <input type="checkbox" id="checkEnableFaceFilters">
+                  <span class="switch-slider"></span>
+                </label>
+                <span class="card-title">🎭 Filter AI ចាប់ផ្ទៃមុខ (Face Tracking AR)</span>
+              </div>
+              <span class="face-detect-status-badge" id="badgeFaceDetectStatus">⚪ រង់ចាំចាប់ផ្ទៃមុខ</span>
+            </div>
+
+            <!-- Face Filters Selection Grid -->
+            <label class="section-label" style="margin-bottom: 8px; display: block;">✨ ជ្រើសរើសរូប Filter AI ផ្ទៃមុខ៖</label>
+            <div class="face-filters-grid" id="faceFiltersGrid">
+              <div class="face-filter-card active" data-filter="none">
+                <span class="face-filter-icon">🚫</span>
+                <span class="face-filter-name">គ្មាន Filter</span>
+                <span class="face-filter-desc">ធម្មជាតិ</span>
+              </div>
+              <div class="face-filter-card" data-filter="sunglasses">
+                <span class="face-filter-icon">🕶️</span>
+                <span class="face-filter-name">វ៉ែនតាខ្មៅ Cool</span>
+                <span class="face-filter-desc">Aviator Shades</span>
+              </div>
+              <div class="face-filter-card" data-filter="crown">
+                <span class="face-filter-icon">👑</span>
+                <span class="face-filter-name">មកុដរាជវង្សមាស</span>
+                <span class="face-filter-desc">Royal Gold</span>
+              </div>
+              <div class="face-filter-card" data-filter="bunny">
+                <span class="face-filter-icon">🐰</span>
+                <span class="face-filter-name">ត្រចៀកទន្សាយ</span>
+                <span class="face-filter-desc">Cute Bunny</span>
+              </div>
+              <div class="face-filter-card" data-filter="cat_ears">
+                <span class="face-filter-icon">🐱</span>
+                <span class="face-filter-name">ត្រចៀកឆ្មា & ពុកមាត់</span>
+                <span class="face-filter-desc">Neko Cat</span>
+              </div>
+              <div class="face-filter-card" data-filter="flower_crown">
+                <span class="face-filter-icon">🌸</span>
+                <span class="face-filter-name">មកុដផ្កាស្រស់</span>
+                <span class="face-filter-desc">Sakura Crown</span>
+              </div>
+              <div class="face-filter-card" data-filter="neon_visor">
+                <span class="face-filter-icon">⚡</span>
+                <span class="face-filter-name">វ៉ែនតាពន្លឺ Cyber</span>
+                <span class="face-filter-desc">Neon Visor</span>
+              </div>
+              <div class="face-filter-card" data-filter="kawaii">
+                <span class="face-filter-icon">💖</span>
+                <span class="face-filter-name">ថ្ពាល់ក្រហម & បេះដូង</span>
+                <span class="face-filter-desc">Kawaii Blush</span>
+              </div>
+              <div class="face-filter-card" data-filter="gentleman">
+                <span class="face-filter-icon">🎩</span>
+                <span class="face-filter-name">មួក & ពុកមាត់</span>
+                <span class="face-filter-desc">Gentleman</span>
+              </div>
+              <div class="face-filter-card" data-filter="ai_scan">
+                <span class="face-filter-icon">🤖</span>
+                <span class="face-filter-name">ស្កេនផ្ទៃមុខ Sci-Fi</span>
+                <span class="face-filter-desc">AI Tracking Grid</span>
+              </div>
+              <div class="face-filter-card" data-filter="masquerade">
+                <span class="face-filter-icon">🦹</span>
+                <span class="face-filter-name">របាំងមុខរាត្រីសមោសរ</span>
+                <span class="face-filter-desc">Venice Gold Mask</span>
+              </div>
+            </div>
+
+            <!-- Sliders for Scale & Height Offset -->
+            <div class="sliders-grid">
+              <div class="slider-box">
+                <div class="slider-label-row">
+                  <span>📏 ទំហំ Filter (Filter Scale)</span>
+                  <span class="val" id="valFaceFilterScale">100%</span>
+                </div>
+                <input type="range" id="sliderFaceFilterScale" min="70" max="150" value="100" class="slider-control">
+              </div>
+              <div class="slider-box">
+                <div class="slider-label-row">
+                  <span>↕️ កម្ពស់លើក្បាល (Height Offset)</span>
+                  <span class="val" id="valFaceFilterOffsetY">0px</span>
+                </div>
+                <input type="range" id="sliderFaceFilterOffsetY" min="-60" max="60" value="0" class="slider-control">
+              </div>
+            </div>
+
+            <!-- Actions row -->
+            <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+              <label style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="checkbox" id="checkShowFaceTrackerBox">
+                <span>បង្ហាញប្រអប់ចាប់ផ្ទៃមុខ AI (Tracking Reticle)</span>
+              </label>
+              <button type="button" class="btn btn-sm btn-ghost" id="btnResetFaceFilter">🔄 ដោះ Filter ទាំងអស់</button>
             </div>
           </div>
 
@@ -1378,6 +1480,7 @@
 
   <!-- Script Modules -->
   <script src="js/filters.js"></script>
+  <script src="js/face-filters.js"></script>
   <script src="js/overlays.js"></script>
   <script src="js/comments.js"></script>
   <script src="js/bgm.js"></script>

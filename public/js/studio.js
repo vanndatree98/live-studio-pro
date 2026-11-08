@@ -7,6 +7,8 @@
 document.addEventListener('DOMContentLoaded', async () => {
   // 1. Initialize Engines
   const filterEngine = new BeautyFilterEngine();
+  const faceFilterEngine = new AIFaceFilterEngine();
+  window.faceFilterEngine = faceFilterEngine;
   const overlayManager = new OverlayManager();
 
   // Elements
@@ -1602,6 +1604,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
       filterEngine.render(ctx, activeVid, width, height, isFlipped && activeVideoSource === 'camera');
+
+      // Render AI Face Tracking Filters if enabled
+      if (faceFilterEngine && faceFilterEngine.enabled) {
+        faceFilterEngine.processAndRender(ctx, activeVid, width, height, isFlipped && activeVideoSource === 'camera');
+      }
     } else {
       drawFallbackCanvas('សូមផ្ទុកវីដេអូ ឬបើកកាមេរ៉ា (Load Video or Enable Camera)');
     }
@@ -1964,6 +1971,122 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast('🔄 បានកំណត់តម្រងដើមឡើងវិញ', 'success');
     });
   }
+
+  // 12.5 AI Face Filter UI Bindings
+  const checkEnableFaceFilters = document.getElementById('checkEnableFaceFilters');
+  const badgeFaceDetectStatus = document.getElementById('badgeFaceDetectStatus');
+  const sliderFaceFilterScale = document.getElementById('sliderFaceFilterScale');
+  const valFaceFilterScale = document.getElementById('valFaceFilterScale');
+  const sliderFaceFilterOffsetY = document.getElementById('sliderFaceFilterOffsetY');
+  const valFaceFilterOffsetY = document.getElementById('valFaceFilterOffsetY');
+  const checkShowFaceTrackerBox = document.getElementById('checkShowFaceTrackerBox');
+  const btnResetFaceFilter = document.getElementById('btnResetFaceFilter');
+
+  function selectFaceFilter(filterId) {
+    faceFilterEngine.setFilter(filterId);
+
+    document.querySelectorAll('.face-filter-card').forEach(card => {
+      card.classList.toggle('active', card.dataset.filter === filterId);
+    });
+
+    if (checkEnableFaceFilters) {
+      checkEnableFaceFilters.checked = filterId !== 'none';
+    }
+
+    const filterNames = {
+      none: 'ធម្មជាតិ (គ្មាន Filter)',
+      sunglasses: '🕶️ វ៉ែនតាខ្មៅ Aviator Shades',
+      crown: '👑 មកុដមាសរាជវង្ស Royal Gold Crown',
+      bunny: '🐰 ត្រចៀកទន្សាយ Cute Bunny Ears',
+      cat_ears: '🐱 ត្រចៀកឆ្មា & ពុកមាត់ Neko Cat',
+      flower_crown: '🌸 មកុដផ្កាស្រស់ Sakura Crown',
+      neon_visor: '⚡ វ៉ែនតាពន្លឺ Cyberpunk Neon Visor',
+      kawaii: '💖 ថ្ពាល់ក្រហម & បេះដូង Kawaii Blush',
+      gentleman: '🎩 មួក & ពុកមាត់ Gentleman Top Hat',
+      ai_scan: '🤖 ស្កេនផ្ទៃមុខ Sci-Fi AI Grid',
+      masquerade: '🦹 របាំងមុខរាត្រីសមោសរ Venetian Mask'
+    };
+
+    if (filterId !== 'none') {
+      showToast(`🎭 បានដាក់ Filter៖ ${filterNames[filterId] || filterId}`, 'success');
+    }
+  }
+
+  if (checkEnableFaceFilters) {
+    checkEnableFaceFilters.addEventListener('change', (e) => {
+      faceFilterEngine.enabled = e.target.checked;
+      if (e.target.checked && faceFilterEngine.currentFilter === 'none') {
+        selectFaceFilter('sunglasses');
+      } else if (!e.target.checked) {
+        selectFaceFilter('none');
+      }
+    });
+  }
+
+  document.querySelectorAll('.face-filter-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const filterId = card.dataset.filter || 'none';
+      selectFaceFilter(filterId);
+    });
+  });
+
+  if (sliderFaceFilterScale) {
+    sliderFaceFilterScale.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      faceFilterEngine.setScale(val / 100);
+      if (valFaceFilterScale) valFaceFilterScale.textContent = `${val}%`;
+    });
+  }
+
+  if (sliderFaceFilterOffsetY) {
+    sliderFaceFilterOffsetY.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      faceFilterEngine.setOffsetY(val);
+      if (valFaceFilterOffsetY) valFaceFilterOffsetY.textContent = `${val > 0 ? '+' : ''}${val}px`;
+    });
+  }
+
+  if (checkShowFaceTrackerBox) {
+    checkShowFaceTrackerBox.addEventListener('change', (e) => {
+      faceFilterEngine.showDebugBox = e.target.checked;
+    });
+  }
+
+  if (btnResetFaceFilter) {
+    btnResetFaceFilter.addEventListener('click', () => {
+      selectFaceFilter('none');
+      if (sliderFaceFilterScale) {
+        sliderFaceFilterScale.value = 100;
+        if (valFaceFilterScale) valFaceFilterScale.textContent = '100%';
+        faceFilterEngine.setScale(1.0);
+      }
+      if (sliderFaceFilterOffsetY) {
+        sliderFaceFilterOffsetY.value = 0;
+        if (valFaceFilterOffsetY) valFaceFilterOffsetY.textContent = '0px';
+        faceFilterEngine.setOffsetY(0);
+      }
+      if (checkShowFaceTrackerBox) {
+        checkShowFaceTrackerBox.checked = false;
+        faceFilterEngine.showDebugBox = false;
+      }
+      showToast('🔄 បានដោះ Filter ផ្ទៃមុខទាំងអស់', 'info');
+    });
+  }
+
+  // Periodic Face Detection Status Badge updater
+  setInterval(() => {
+    if (!badgeFaceDetectStatus) return;
+    if (!faceFilterEngine.enabled || faceFilterEngine.currentFilter === 'none') {
+      badgeFaceDetectStatus.className = 'face-detect-status-badge';
+      badgeFaceDetectStatus.textContent = '⚪ មិនទាន់ដំណើរការ';
+    } else if (faceFilterEngine.face.detected) {
+      badgeFaceDetectStatus.className = 'face-detect-status-badge active';
+      badgeFaceDetectStatus.textContent = '🟢 AI ចាប់បានផ្ទៃមុខ (Face Locked)';
+    } else {
+      badgeFaceDetectStatus.className = 'face-detect-status-badge';
+      badgeFaceDetectStatus.textContent = '⏳ កំពុងស្កេនផ្ទៃមុខ (Scanning...)';
+    }
+  }, 400);
 
   // 13. Overlays UI Bindings
   const checkLowerThird = document.getElementById('checkLowerThird');

@@ -3613,3 +3613,102 @@ input:checked + .switch-slider:before {
   margin-left: auto;
   font-weight: 500;
 }
+
+/* =====================================================================
+   AI FACE TRACKING AR FILTERS STYLES
+   ===================================================================== */
+.face-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.face-filter-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.face-detect-status-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  transition: all 0.25s ease;
+}
+
+.face-detect-status-badge.active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+  color: #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+}
+
+.face-filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.face-filter-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 6px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  text-align: center;
+}
+
+.face-filter-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--secondary);
+  transform: translateY(-2px);
+}
+
+.face-filter-card.active {
+  background: rgba(139, 92, 246, 0.18);
+  border-color: #8b5cf6;
+  box-shadow: 0 0 14px rgba(139, 92, 246, 0.35);
+  transform: translateY(-1px);
+}
+
+.face-filter-icon {
+  font-size: 26px;
+  margin-bottom: 6px;
+  line-height: 1;
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.face-filter-card:hover .face-filter-icon {
+  transform: scale(1.15);
+}
+
+.face-filter-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.25;
+}
+
+.face-filter-desc {
+  font-size: 9.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
