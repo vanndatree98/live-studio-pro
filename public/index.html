@@ -462,21 +462,45 @@
               </div>
             </div>
 
-            <!-- Sliders for Scale & Height Offset -->
+            <!-- Interactive Drag & Zoom Tip -->
+            <div class="face-filter-drag-tip">
+              <span>💡 <strong>គន្លឹះ៖</strong> អ្នកអាច <strong>ចុចចាប់អូស (Drag)</strong> រូប Filter លើអេក្រង់វីដេអូដោយផ្ទាល់ ឬ <strong>វិលកង់កណ្តុរ (Scroll)</strong> ដើម្បីពង្រីក/បង្រួម!</span>
+            </div>
+
+            <!-- Quick Scale Presets Row -->
+            <div class="scale-preset-row">
+              <span class="scale-label">🔍 ពង្រីក/បង្រួម៖</span>
+              <button type="button" class="btn-scale-quick" id="btnScaleDown" title="បង្រួមតូច">➖ តូច</button>
+              <button type="button" class="btn-scale-preset" data-scale="0.75">75%</button>
+              <button type="button" class="btn-scale-preset active" data-scale="1.0">100%</button>
+              <button type="button" class="btn-scale-preset" data-scale="1.25">125%</button>
+              <button type="button" class="btn-scale-preset" data-scale="1.5">150%</button>
+              <button type="button" class="btn-scale-quick" id="btnScaleUp" title="ពង្រីកធំ">➕ ធំ</button>
+              <button type="button" class="btn-scale-quick" id="btnResetTransform" title="ដាក់កណ្តាលដើម">🎯 កណ្តាល</button>
+            </div>
+
+            <!-- Sliders for Scale & 2D Position Offset (X & Y) -->
             <div class="sliders-grid">
               <div class="slider-box">
                 <div class="slider-label-row">
-                  <span>📏 ទំហំ Filter (Filter Scale)</span>
+                  <span>📏 ទំហំ Filter (Scale)</span>
                   <span class="val" id="valFaceFilterScale">100%</span>
                 </div>
-                <input type="range" id="sliderFaceFilterScale" min="70" max="150" value="100" class="slider-control">
+                <input type="range" id="sliderFaceFilterScale" min="40" max="220" value="100" class="slider-control">
               </div>
               <div class="slider-box">
                 <div class="slider-label-row">
-                  <span>↕️ កម្ពស់លើក្បាល (Height Offset)</span>
+                  <span>↔️ ឆ្វេង / ស្តាំ (Offset X)</span>
+                  <span class="val" id="valFaceFilterOffsetX">0px</span>
+                </div>
+                <input type="range" id="sliderFaceFilterOffsetX" min="-180" max="180" value="0" class="slider-control">
+              </div>
+              <div class="slider-box">
+                <div class="slider-label-row">
+                  <span>↕️ ឡើងលើ / ចុះក្រោម (Offset Y)</span>
                   <span class="val" id="valFaceFilterOffsetY">0px</span>
                 </div>
-                <input type="range" id="sliderFaceFilterOffsetY" min="-60" max="60" value="0" class="slider-control">
+                <input type="range" id="sliderFaceFilterOffsetY" min="-180" max="180" value="0" class="slider-control">
               </div>
             </div>
 

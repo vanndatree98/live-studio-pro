@@ -1972,15 +1972,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // 12.5 AI Face Filter UI Bindings
+  // 12.5 AI Face Filter UI Bindings & Interactive Canvas Drag / Zoom Controls
   const checkEnableFaceFilters = document.getElementById('checkEnableFaceFilters');
   const badgeFaceDetectStatus = document.getElementById('badgeFaceDetectStatus');
   const sliderFaceFilterScale = document.getElementById('sliderFaceFilterScale');
   const valFaceFilterScale = document.getElementById('valFaceFilterScale');
+  const sliderFaceFilterOffsetX = document.getElementById('sliderFaceFilterOffsetX');
+  const valFaceFilterOffsetX = document.getElementById('valFaceFilterOffsetX');
   const sliderFaceFilterOffsetY = document.getElementById('sliderFaceFilterOffsetY');
   const valFaceFilterOffsetY = document.getElementById('valFaceFilterOffsetY');
   const checkShowFaceTrackerBox = document.getElementById('checkShowFaceTrackerBox');
   const btnResetFaceFilter = document.getElementById('btnResetFaceFilter');
+  const btnScaleDown = document.getElementById('btnScaleDown');
+  const btnScaleUp = document.getElementById('btnScaleUp');
+  const btnResetTransform = document.getElementById('btnResetTransform');
 
   function selectFaceFilter(filterId) {
     faceFilterEngine.setFilter(filterId);
@@ -2012,6 +2017,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  function syncFaceFilterTransformUI() {
+    const scalePct = Math.round(faceFilterEngine.filterScale * 100);
+    if (sliderFaceFilterScale) sliderFaceFilterScale.value = scalePct;
+    if (valFaceFilterScale) valFaceFilterScale.textContent = `${scalePct}%`;
+
+    const ox = Math.round(faceFilterEngine.offsetX);
+    if (sliderFaceFilterOffsetX) sliderFaceFilterOffsetX.value = ox;
+    if (valFaceFilterOffsetX) valFaceFilterOffsetX.textContent = `${ox > 0 ? '+' : ''}${ox}px`;
+
+    const oy = Math.round(faceFilterEngine.offsetY);
+    if (sliderFaceFilterOffsetY) sliderFaceFilterOffsetY.value = oy;
+    if (valFaceFilterOffsetY) valFaceFilterOffsetY.textContent = `${oy > 0 ? '+' : ''}${oy}px`;
+
+    // Update active scale preset button
+    document.querySelectorAll('.btn-scale-preset').forEach(btn => {
+      const btnScale = parseFloat(btn.dataset.scale);
+      btn.classList.toggle('active', Math.abs(btnScale - faceFilterEngine.filterScale) < 0.04);
+    });
+  }
+
   if (checkEnableFaceFilters) {
     checkEnableFaceFilters.addEventListener('change', (e) => {
       faceFilterEngine.enabled = e.target.checked;
@@ -2030,19 +2055,63 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
+  // Scale Slider
   if (sliderFaceFilterScale) {
     sliderFaceFilterScale.addEventListener('input', (e) => {
       const val = parseInt(e.target.value, 10);
       faceFilterEngine.setScale(val / 100);
-      if (valFaceFilterScale) valFaceFilterScale.textContent = `${val}%`;
+      syncFaceFilterTransformUI();
     });
   }
 
+  // Offset X Slider (Left / Right)
+  if (sliderFaceFilterOffsetX) {
+    sliderFaceFilterOffsetX.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      faceFilterEngine.setOffsetX(val);
+      syncFaceFilterTransformUI();
+    });
+  }
+
+  // Offset Y Slider (Up / Down)
   if (sliderFaceFilterOffsetY) {
     sliderFaceFilterOffsetY.addEventListener('input', (e) => {
       const val = parseInt(e.target.value, 10);
       faceFilterEngine.setOffsetY(val);
-      if (valFaceFilterOffsetY) valFaceFilterOffsetY.textContent = `${val > 0 ? '+' : ''}${val}px`;
+      syncFaceFilterTransformUI();
+    });
+  }
+
+  // Scale Quick Zoom Buttons (- and +)
+  if (btnScaleDown) {
+    btnScaleDown.addEventListener('click', () => {
+      faceFilterEngine.setScale(faceFilterEngine.filterScale - 0.1);
+      syncFaceFilterTransformUI();
+    });
+  }
+
+  if (btnScaleUp) {
+    btnScaleUp.addEventListener('click', () => {
+      faceFilterEngine.setScale(faceFilterEngine.filterScale + 0.1);
+      syncFaceFilterTransformUI();
+    });
+  }
+
+  // Scale Preset Badges (75%, 100%, 125%, 150%)
+  document.querySelectorAll('.btn-scale-preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const scale = parseFloat(btn.dataset.scale) || 1.0;
+      faceFilterEngine.setScale(scale);
+      syncFaceFilterTransformUI();
+    });
+  });
+
+  // Reset Transform to Center (X: 0, Y: 0, Scale: 100%)
+  if (btnResetTransform) {
+    btnResetTransform.addEventListener('click', () => {
+      faceFilterEngine.resetTransform();
+      syncFaceFilterTransformUI();
+      showToast('🎯 បានដាក់ Filter មកចំកណ្តាល និងទំហំដើម 100%', 'info');
     });
   }
 
@@ -2055,16 +2124,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (btnResetFaceFilter) {
     btnResetFaceFilter.addEventListener('click', () => {
       selectFaceFilter('none');
-      if (sliderFaceFilterScale) {
-        sliderFaceFilterScale.value = 100;
-        if (valFaceFilterScale) valFaceFilterScale.textContent = '100%';
-        faceFilterEngine.setScale(1.0);
-      }
-      if (sliderFaceFilterOffsetY) {
-        sliderFaceFilterOffsetY.value = 0;
-        if (valFaceFilterOffsetY) valFaceFilterOffsetY.textContent = '0px';
-        faceFilterEngine.setOffsetY(0);
-      }
+      faceFilterEngine.resetTransform();
+      syncFaceFilterTransformUI();
       if (checkShowFaceTrackerBox) {
         checkShowFaceTrackerBox.checked = false;
         faceFilterEngine.showDebugBox = false;
@@ -2072,6 +2133,79 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast('🔄 បានដោះ Filter ផ្ទៃមុខទាំងអស់', 'info');
     });
   }
+
+  // =========================================================================
+  // INTERACTIVE CANVAS DRAG-AND-DROP & MOUSE WHEEL ZOOM
+  // Allows user to click & drag (ចាប់អូស) filter directly on live preview,
+  // and scroll mouse wheel (វិលកង់កណ្តុរ) to scale / zoom in and out!
+  // =========================================================================
+  function getCanvasCoords(e) {
+    const rect = liveCanvas.getBoundingClientRect();
+    const scaleX = liveCanvas.width / rect.width;
+    const scaleY = liveCanvas.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  }
+
+  liveCanvas.addEventListener('pointerdown', (e) => {
+    if (!faceFilterEngine.enabled || faceFilterEngine.currentFilter === 'none') return;
+    const pt = getCanvasCoords(e);
+
+    if (faceFilterEngine.hitTest(pt.x, pt.y)) {
+      faceFilterEngine.isDragging = true;
+      faceFilterEngine.dragStartX = pt.x;
+      faceFilterEngine.dragStartY = pt.y;
+      faceFilterEngine.dragStartOffsetX = faceFilterEngine.offsetX;
+      faceFilterEngine.dragStartOffsetY = faceFilterEngine.offsetY;
+      faceFilterEngine.triggerInteraction();
+      try { liveCanvas.setPointerCapture(e.pointerId); } catch (err) {}
+      liveCanvas.style.cursor = 'grabbing';
+    }
+  });
+
+  liveCanvas.addEventListener('pointermove', (e) => {
+    if (!faceFilterEngine.enabled || faceFilterEngine.currentFilter === 'none') return;
+    const pt = getCanvasCoords(e);
+
+    if (faceFilterEngine.isDragging) {
+      const dx = pt.x - faceFilterEngine.dragStartX;
+      const dy = pt.y - faceFilterEngine.dragStartY;
+      faceFilterEngine.setOffsetX(faceFilterEngine.dragStartOffsetX + dx);
+      faceFilterEngine.setOffsetY(faceFilterEngine.dragStartOffsetY + dy);
+      syncFaceFilterTransformUI();
+    } else {
+      const isOver = faceFilterEngine.hitTest(pt.x, pt.y);
+      if (isOver !== faceFilterEngine.isHovered) {
+        faceFilterEngine.isHovered = isOver;
+        liveCanvas.style.cursor = isOver ? 'grab' : 'default';
+        if (isOver) faceFilterEngine.triggerInteraction();
+      }
+    }
+  });
+
+  const stopFilterDrag = (e) => {
+    if (faceFilterEngine.isDragging) {
+      faceFilterEngine.isDragging = false;
+      liveCanvas.style.cursor = faceFilterEngine.isHovered ? 'grab' : 'default';
+      try { liveCanvas.releasePointerCapture(e.pointerId); } catch (err) {}
+    }
+  };
+  liveCanvas.addEventListener('pointerup', stopFilterDrag);
+  liveCanvas.addEventListener('pointercancel', stopFilterDrag);
+
+  // Mouse Wheel Zoom (Scroll to scale up / down directly on canvas)
+  liveCanvas.addEventListener('wheel', (e) => {
+    if (!faceFilterEngine.enabled || faceFilterEngine.currentFilter === 'none') return;
+    const pt = getCanvasCoords(e);
+    if (faceFilterEngine.hitTest(pt.x, pt.y) || (performance.now() - faceFilterEngine.lastInteractionTime < 1800)) {
+      e.preventDefault();
+      const zoomStep = e.deltaY < 0 ? 0.05 : -0.05;
+      faceFilterEngine.setScale(faceFilterEngine.filterScale + zoomStep);
+      syncFaceFilterTransformUI();
+    }
+  }, { passive: false });
 
   // Periodic Face Detection Status Badge updater
   setInterval(() => {

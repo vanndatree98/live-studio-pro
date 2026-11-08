@@ -1,19 +1,35 @@
 /**
  * AI Face Filter Engine
  * Real-Time Face Tracking & AR Face Filter System for Live Streamers.
- * Supports: Native Browser FaceDetector API + High-Speed Offline CV Fallback.
- * Renders cute and professional accessories: Sunglasses, Crown, Bunny Ears,
- * Cat Ears, Flower Headband, Cyber Visor, Kawaii Blush & Hearts, Top Hat & Mustache,
- * and Sci-Fi AI Face Tracking Scanner.
+ * Supports:
+ * - Native Browser FaceDetector API + High-Speed Offline CV Fallback.
+ * - Interactive Drag-and-Drop on live canvas (ចាប់អូសលើអេក្រង់បានដោយផ្ទាល់).
+ * - Mouse Wheel & Multi-touch Zoom / Scale (បង្រួមតូច ធំ).
+ * - 10 High-Quality AR Accessories: Sunglasses, Royal Crown, Bunny Ears,
+ *   Cat Ears, Flower Headband, Cyber Neon Visor, Kawaii Blush & Hearts,
+ *   Gentleman Top Hat & Mustache, Sci-Fi AI Scanner, and Masquerade Mask.
  */
 
 class AIFaceFilterEngine {
   constructor() {
     this.enabled = false;
     this.currentFilter = 'none'; // 'none', 'sunglasses', 'crown', 'bunny', 'cat_ears', 'flower_crown', 'neon_visor', 'kawaii', 'gentleman', 'ai_scan', 'masquerade'
-    this.filterScale = 1.0;     // 0.7 to 1.5
-    this.offsetY = 0;           // -50 to 50 px
+    this.filterScale = 1.0;      // 0.4 to 2.5
+    this.offsetX = 0;            // -400 to +400 px
+    this.offsetY = 0;            // -400 to +400 px
     this.showDebugBox = false;
+
+    // Interactive Dragging & Scaling on Canvas
+    this.isDragging = false;
+    this.isHovered = false;
+    this.dragStartX = 0;
+    this.dragStartY = 0;
+    this.dragStartOffsetX = 0;
+    this.dragStartOffsetY = 0;
+    this.lastInteractionTime = 0;
+
+    // Bounding Box of the currently rendered filter
+    this.currentBounds = { x: 0, y: 0, w: 0, h: 0, cx: 0, cy: 0 };
 
     // Smoothed Face Coordinates (Exponential Moving Average)
     this.face = {
@@ -46,24 +62,56 @@ class AIFaceFilterEngine {
 
     // Detection throttling
     this.lastDetectTime = 0;
-    this.detectIntervalMs = 70; // Run detection ~14 times per second (low CPU)
+    this.detectIntervalMs = 70; // ~14 times per second (low CPU)
     this.isDetecting = false;
-
-    // Animation timers
-    this.animStartTime = performance.now();
   }
 
   setFilter(filterId) {
     this.currentFilter = filterId;
     this.enabled = filterId !== 'none';
+    this.triggerInteraction();
   }
 
   setScale(scale) {
-    this.filterScale = Math.max(0.6, Math.min(1.6, scale));
+    this.filterScale = Math.max(0.4, Math.min(2.5, Math.round(scale * 100) / 100));
+    this.triggerInteraction();
+  }
+
+  setOffsetX(offset) {
+    this.offsetX = Math.max(-400, Math.min(400, Math.round(offset)));
+    this.triggerInteraction();
   }
 
   setOffsetY(offset) {
-    this.offsetY = Math.max(-100, Math.min(100, offset));
+    this.offsetY = Math.max(-400, Math.min(400, Math.round(offset)));
+    this.triggerInteraction();
+  }
+
+  resetTransform() {
+    this.offsetX = 0;
+    this.offsetY = 0;
+    this.filterScale = 1.0;
+    this.triggerInteraction();
+  }
+
+  triggerInteraction() {
+    this.lastInteractionTime = performance.now();
+  }
+
+  /**
+   * Hit test to see if mouse pointer is over the filter
+   */
+  hitTest(canvasX, canvasY) {
+    if (!this.enabled || !this.face.detected || this.currentFilter === 'none') return false;
+    const b = this.currentBounds;
+    if (b.w <= 0 || b.h <= 0) return false;
+    const pad = Math.max(35, b.w * 0.2);
+    return (
+      canvasX >= b.x - pad &&
+      canvasX <= b.x + b.w + pad &&
+      canvasY >= b.y - pad &&
+      canvasY <= b.y + b.h + pad
+    );
   }
 
   /**
@@ -85,8 +133,8 @@ class AIFaceFilterEngine {
         .finally(() => { this.isDetecting = false; });
     }
 
-    // Decay face detection if not seen recently (> 600ms)
-    if (now - this.face.lastSeen > 600) {
+    // Decay face detection if not seen recently (> 650ms)
+    if (now - this.face.lastSeen > 650) {
       this.face.detected = false;
     }
 
@@ -144,6 +192,88 @@ class AIFaceFilterEngine {
         this.drawMasqueradeMask(ctx, x, y, w, h, angle);
         break;
     }
+
+    // Interactive Dragging & Sizing Gizmo (shown when dragging or hovering or recently adjusted)
+    const isInteractingRecently = (now - this.lastInteractionTime < 1800);
+    if ((this.isDragging || this.isHovered || isInteractingRecently) && this.currentBounds.w > 0) {
+      this.drawTransformGizmo(ctx, now);
+    }
+
+    ctx.restore();
+  }
+
+  /**
+   * Draws interactive dashed frame, handles, and HUD feedback when dragging or zooming
+   */
+  drawTransformGizmo(ctx, now) {
+    const b = this.currentBounds;
+    if (!b || b.w <= 0) return;
+
+    ctx.save();
+    ctx.translate(b.cx, b.cy);
+    ctx.rotate(this.face.angle || 0);
+
+    const halfW = b.w / 2 + 10;
+    const halfH = b.h / 2 + 10;
+
+    // Glowing dashed frame
+    ctx.strokeStyle = this.isDragging ? '#f43f5e' : '#8b5cf6';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([7, 6]);
+    ctx.shadowColor = this.isDragging ? 'rgba(244, 63, 94, 0.7)' : 'rgba(139, 92, 246, 0.7)';
+    ctx.shadowBlur = 12;
+    ctx.strokeRect(-halfW, -halfH, halfW * 2, halfH * 2);
+
+    // 4 Corner Handles
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = this.isDragging ? '#f43f5e' : '#8b5cf6';
+    ctx.lineWidth = 2;
+    const handleSize = 10;
+    const corners = [
+      [-halfW, -halfH],
+      [halfW, -halfH],
+      [-halfW, halfH],
+      [halfW, halfH]
+    ];
+    corners.forEach(([cx, cy]) => {
+      ctx.fillRect(cx - handleSize / 2, cy - handleSize / 2, handleSize, handleSize);
+      ctx.strokeRect(cx - handleSize / 2, cy - handleSize / 2, handleSize, handleSize);
+    });
+
+    // Move Icon ✥ at top center
+    ctx.fillStyle = this.isDragging ? '#f43f5e' : '#8b5cf6';
+    ctx.beginPath();
+    ctx.arc(0, -halfH - 16, 13, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('✥', 0, -halfH - 16);
+
+    // Status Pill Badge below: "✥ X: +0 Y: -12 • 🔍 110%"
+    const infoText = `✥ X:${this.offsetX >= 0 ? '+' : ''}${this.offsetX} Y:${this.offsetY >= 0 ? '+' : ''}${this.offsetY}  •  🔍 ${Math.round(this.filterScale * 100)}%`;
+    ctx.font = 'bold 13px "Inter", "Kantumruy Pro", sans-serif';
+    const textW = ctx.measureText(infoText).width;
+    const badgeW = textW + 26;
+    const badgeH = 28;
+    const badgeY = halfH + 16;
+
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(-badgeW / 2, badgeY, badgeW, badgeH, 14);
+    } else {
+      ctx.rect(-badgeW / 2, badgeY, badgeW, badgeH);
+    }
+    ctx.fill();
+    ctx.strokeStyle = this.isDragging ? '#f43f5e' : '#8b5cf6';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(infoText, 0, badgeY + badgeH / 2);
 
     ctx.restore();
   }
@@ -211,7 +341,6 @@ class AIFaceFilterEngine {
 
   /**
    * Ultra-Fast, Zero-Dependency Offline Computer Vision Face Detector
-   * Uses YCbCr / HSV skin locus segmentation & facial component clustering.
    */
   detectFaceWithColorCV(videoEl, canvasW, canvasH, flipH) {
     const dw = this.detectCanvas.width;
@@ -230,7 +359,6 @@ class AIFaceFilterEngine {
     let skinPixelCount = 0;
     let sumX = 0, sumY = 0;
 
-    // Scan for skin tone pixels (standard peer-reviewed RGB skin color rules)
     for (let y = 10; y < dh - 10; y += 2) {
       for (let x = 10; x < dw - 10; x += 2) {
         const idx = (y * dw + x) * 4;
@@ -238,7 +366,6 @@ class AIFaceFilterEngine {
         const g = data[idx + 1];
         const b = data[idx + 2];
 
-        // Skin detector rule:
         const isSkin = (r > 80 && g > 35 && b > 20 &&
                         r > g && r > b &&
                         (r - g) > 10 &&
@@ -257,9 +384,7 @@ class AIFaceFilterEngine {
       }
     }
 
-    // Minimum face cluster threshold
     if (skinPixelCount < 90 || maxX <= minX || maxY <= minY) {
-      // Default to upper-center portrait location if stream is active
       const defW = canvasW * 0.32;
       const defH = defW * 1.25;
       const defX = (canvasW - defW) / 2;
@@ -272,11 +397,9 @@ class AIFaceFilterEngine {
     const rawW = Math.max(25, maxX - minX);
     const rawH = Math.max(30, maxY - minY);
 
-    // Normalize aspect ratio to typical head bounds (~1:1.25)
     const headW = Math.min(rawW * 1.05, dw * 0.7);
     const headH = headW * 1.28;
 
-    // Map back to full Canvas coordinates
     const scaleX = canvasW / dw;
     const scaleY = canvasH / dh;
 
@@ -293,7 +416,7 @@ class AIFaceFilterEngine {
   }
 
   // =========================================================================
-  // VECTOR AR FILTER DRAWING PROCEDURES
+  // VECTOR AR FILTER DRAWING PROCEDURES (WITH OFFSET X, OFFSET Y & BOUNDS TRACKING)
   // =========================================================================
 
   /**
@@ -303,14 +426,22 @@ class AIFaceFilterEngine {
     const scale = this.filterScale;
     const glassW = fw * 0.95 * scale;
     const glassH = glassW * 0.38;
-    const centerX = fx + fw / 2;
+    const centerX = fx + fw / 2 + this.offsetX;
     const centerY = fy + fh * 0.38 + this.offsetY;
+
+    this.currentBounds = {
+      x: centerX - glassW / 2,
+      y: centerY - glassH / 2,
+      w: glassW,
+      h: glassH,
+      cx: centerX,
+      cy: centerY
+    };
 
     ctx.save();
     ctx.translate(centerX, centerY);
     ctx.rotate(angle);
 
-    // Frame Shadow
     ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
     ctx.shadowBlur = 14;
 
@@ -318,24 +449,19 @@ class AIFaceFilterEngine {
     const lensH = glassH;
     const bridgeW = glassW * 0.12;
 
-    // Draw Left Lens
     this.drawAviatorLens(ctx, -bridgeW / 2 - lensW, -lensH / 2, lensW, lensH);
-    // Draw Right Lens
     this.drawAviatorLens(ctx, bridgeW / 2, -lensH / 2, lensW, lensH);
 
-    // Golden Top Bar & Bridge
     ctx.shadowBlur = 0;
     ctx.strokeStyle = '#d4af37';
     ctx.lineWidth = 4 * scale;
     ctx.lineCap = 'round';
 
-    // Bridge connector
     ctx.beginPath();
     ctx.moveTo(-bridgeW / 2 - 2, -lensH * 0.1);
     ctx.quadraticCurveTo(0, -lensH * 0.3, bridgeW / 2 + 2, -lensH * 0.1);
     ctx.stroke();
 
-    // Top brow bar
     ctx.beginPath();
     ctx.moveTo(-glassW * 0.46, -lensH * 0.46);
     ctx.lineTo(glassW * 0.46, -lensH * 0.46);
@@ -346,7 +472,6 @@ class AIFaceFilterEngine {
 
   drawAviatorLens(ctx, x, y, w, h) {
     ctx.save();
-    // Lens Shape
     ctx.beginPath();
     ctx.moveTo(x + 10, y);
     ctx.lineTo(x + w - 10, y);
@@ -358,7 +483,6 @@ class AIFaceFilterEngine {
     ctx.quadraticCurveTo(x, y, x + 10, y);
     ctx.closePath();
 
-    // Dark Polarized Mirror Gradient Fill
     const grad = ctx.createLinearGradient(x, y, x + w, y + h);
     grad.addColorStop(0, '#111319');
     grad.addColorStop(0.4, '#1f293d');
@@ -367,12 +491,10 @@ class AIFaceFilterEngine {
     ctx.fillStyle = grad;
     ctx.fill();
 
-    // Gold Rim
     ctx.strokeStyle = '#f59e0b';
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    // Specular diagonal glare streak
     ctx.save();
     ctx.clip();
     const glareGrad = ctx.createLinearGradient(x, y, x + w * 0.6, y + h);
@@ -394,10 +516,18 @@ class AIFaceFilterEngine {
     const scale = this.filterScale;
     const crownW = fw * 0.85 * scale;
     const crownH = crownW * 0.62;
-    const centerX = fx + fw / 2;
+    const centerX = fx + fw / 2 + this.offsetX;
     const crownY = fy - crownH * 0.45 + this.offsetY;
 
-    // Subtle floating bobbing animation
+    this.currentBounds = {
+      x: centerX - crownW / 2,
+      y: crownY - crownH,
+      w: crownW,
+      h: crownH,
+      cx: centerX,
+      cy: crownY - crownH / 2
+    };
+
     const bob = Math.sin(now / 350) * 5;
 
     ctx.save();
@@ -407,23 +537,21 @@ class AIFaceFilterEngine {
     ctx.shadowColor = 'rgba(212, 175, 55, 0.6)';
     ctx.shadowBlur = 20;
 
-    // Crown Body Path
     ctx.beginPath();
     const halfW = crownW / 2;
-    ctx.moveTo(-halfW, 0); // Bottom left
-    ctx.lineTo(halfW, 0);  // Bottom right
-    ctx.lineTo(halfW * 0.95, -crownH * 0.65); // Right peak
-    ctx.lineTo(halfW * 0.5, -crownH * 0.35);  // Right inner valley
-    ctx.lineTo(halfW * 0.35, -crownH * 0.85); // Center-right peak
-    ctx.lineTo(0, -crownH * 0.5);             // Center inner valley
-    ctx.lineTo(0, -crownH * 1.0);             // High Center Peak
-    ctx.lineTo(-halfW * 0.25, -crownH * 0.5); // Center-left inner valley
-    ctx.lineTo(-halfW * 0.35, -crownH * 0.85); // Center-left peak
-    ctx.lineTo(-halfW * 0.5, -crownH * 0.35);  // Left inner valley
-    ctx.lineTo(-halfW * 0.95, -crownH * 0.65); // Left peak
+    ctx.moveTo(-halfW, 0);
+    ctx.lineTo(halfW, 0);
+    ctx.lineTo(halfW * 0.95, -crownH * 0.65);
+    ctx.lineTo(halfW * 0.5, -crownH * 0.35);
+    ctx.lineTo(halfW * 0.35, -crownH * 0.85);
+    ctx.lineTo(0, -crownH * 0.5);
+    ctx.lineTo(0, -crownH * 1.0);
+    ctx.lineTo(-halfW * 0.25, -crownH * 0.5);
+    ctx.lineTo(-halfW * 0.35, -crownH * 0.85);
+    ctx.lineTo(-halfW * 0.5, -crownH * 0.35);
+    ctx.lineTo(-halfW * 0.95, -crownH * 0.65);
     ctx.closePath();
 
-    // Royal Gold Gradient
     const goldGrad = ctx.createLinearGradient(0, -crownH, 0, 0);
     goldGrad.addColorStop(0, '#fef08a');
     goldGrad.addColorStop(0.35, '#eab308');
@@ -432,22 +560,19 @@ class AIFaceFilterEngine {
     ctx.fillStyle = goldGrad;
     ctx.fill();
 
-    // Golden Outline
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // Bottom Velvet Band
     ctx.shadowBlur = 0;
     ctx.fillStyle = '#dc2626';
     ctx.fillRect(-halfW * 0.98, -12, crownW * 0.98, 12);
 
-    // Glowing Crown Jewels (Rubies & Emeralds)
-    this.drawJewel(ctx, 0, -crownH * 0.78, 10 * scale, '#dc2626', now);           // Center Ruby
-    this.drawJewel(ctx, -halfW * 0.35, -crownH * 0.65, 8 * scale, '#2563eb', now); // Left Sapphire
-    this.drawJewel(ctx, halfW * 0.35, -crownH * 0.65, 8 * scale, '#2563eb', now);  // Right Sapphire
-    this.drawJewel(ctx, -halfW * 0.85, -crownH * 0.5, 6 * scale, '#16a34a', now);  // Far Left Emerald
-    this.drawJewel(ctx, halfW * 0.85, -crownH * 0.5, 6 * scale, '#16a34a', now);   // Far Right Emerald
+    this.drawJewel(ctx, 0, -crownH * 0.78, 10 * scale, '#dc2626', now);
+    this.drawJewel(ctx, -halfW * 0.35, -crownH * 0.65, 8 * scale, '#2563eb', now);
+    this.drawJewel(ctx, halfW * 0.35, -crownH * 0.65, 8 * scale, '#2563eb', now);
+    this.drawJewel(ctx, -halfW * 0.85, -crownH * 0.5, 6 * scale, '#16a34a', now);
+    this.drawJewel(ctx, halfW * 0.85, -crownH * 0.5, 6 * scale, '#16a34a', now);
 
     ctx.restore();
   }
@@ -462,7 +587,6 @@ class AIFaceFilterEngine {
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // Jewel Glint Sparkle
     const sparkle = (Math.sin(now / 200 + x) + 1) * 0.5;
     ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + sparkle * 0.5})`;
     ctx.beginPath();
@@ -478,10 +602,19 @@ class AIFaceFilterEngine {
     const scale = this.filterScale;
     const earW = fw * 0.28 * scale;
     const earH = fw * 0.95 * scale;
-    const centerX = fx + fw / 2;
+    const totalW = fw * 0.85 * scale;
+    const centerX = fx + fw / 2 + this.offsetX;
     const headTopY = fy + this.offsetY;
 
-    // Ear twitch wiggle animation
+    this.currentBounds = {
+      x: centerX - totalW / 2,
+      y: headTopY - earH,
+      w: totalW,
+      h: earH,
+      cx: centerX,
+      cy: headTopY - earH / 2
+    };
+
     const twitchLeft = Math.sin(now / 280) * 0.08;
     const twitchRight = Math.cos(now / 320) * 0.07;
 
@@ -489,21 +622,18 @@ class AIFaceFilterEngine {
     ctx.translate(centerX, headTopY);
     ctx.rotate(angle);
 
-    // Left Ear
     ctx.save();
     ctx.translate(-fw * 0.24 * scale, 0);
     ctx.rotate(-0.15 + twitchLeft);
     this.drawSingleBunnyEar(ctx, earW, earH);
     ctx.restore();
 
-    // Right Ear
     ctx.save();
     ctx.translate(fw * 0.24 * scale, 0);
     ctx.rotate(0.18 + twitchRight);
     this.drawSingleBunnyEar(ctx, earW, earH);
     ctx.restore();
 
-    // Headband bow in center
     ctx.fillStyle = '#f472b6';
     ctx.beginPath();
     ctx.arc(0, 0, 14 * scale, 0, Math.PI * 2);
@@ -514,7 +644,6 @@ class AIFaceFilterEngine {
 
   drawSingleBunnyEar(ctx, w, h) {
     ctx.save();
-    // Outer white ear
     ctx.beginPath();
     ctx.ellipse(0, -h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
     ctx.fillStyle = '#ffffff';
@@ -525,7 +654,6 @@ class AIFaceFilterEngine {
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // Inner pink ear
     ctx.shadowBlur = 0;
     ctx.beginPath();
     ctx.ellipse(0, -h / 2, w * 0.3, h * 0.4, 0, 0, Math.PI * 2);
@@ -540,38 +668,43 @@ class AIFaceFilterEngine {
   drawCatEars(ctx, fx, fy, fw, fh, angle) {
     const scale = this.filterScale;
     const earSize = fw * 0.34 * scale;
-    const centerX = fx + fw / 2;
+    const totalW = fw * 0.95 * scale;
+    const totalH = fh * 0.65 * scale;
+    const centerX = fx + fw / 2 + this.offsetX;
     const headTopY = fy + fh * 0.08 + this.offsetY;
+
+    this.currentBounds = {
+      x: centerX - totalW / 2,
+      y: headTopY - earSize,
+      w: totalW,
+      h: totalH,
+      cx: centerX,
+      cy: headTopY
+    };
 
     ctx.save();
     ctx.translate(centerX, headTopY);
     ctx.rotate(angle);
 
-    // Left Cat Ear
     this.drawSingleCatEar(ctx, -fw * 0.32 * scale, 0, earSize, -1);
-    // Right Cat Ear
     this.drawSingleCatEar(ctx, fw * 0.32 * scale, 0, earSize, 1);
 
-    // Whiskers and Cat Nose
     const noseY = fh * 0.48;
     ctx.fillStyle = '#fb7185';
     ctx.beginPath();
     ctx.ellipse(0, noseY, 8 * scale, 6 * scale, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Whiskers (3 on left, 3 on right)
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
     ctx.lineWidth = 3 * scale;
     ctx.lineCap = 'round';
 
     [-12, 0, 12].forEach(offset => {
-      // Left whiskers
       ctx.beginPath();
       ctx.moveTo(-16 * scale, noseY + offset * 0.4);
       ctx.lineTo(-fw * 0.48 * scale, noseY + offset);
       ctx.stroke();
 
-      // Right whiskers
       ctx.beginPath();
       ctx.moveTo(16 * scale, noseY + offset * 0.4);
       ctx.lineTo(fw * 0.48 * scale, noseY + offset);
@@ -585,7 +718,6 @@ class AIFaceFilterEngine {
     ctx.save();
     ctx.translate(x, y);
 
-    // Outer ear triangle
     ctx.beginPath();
     ctx.moveTo(-size / 2, 0);
     ctx.lineTo(dir * (size * 0.15), -size * 1.1);
@@ -597,7 +729,6 @@ class AIFaceFilterEngine {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Inner pink triangle
     ctx.beginPath();
     ctx.moveTo(-size * 0.3, -2);
     ctx.lineTo(dir * (size * 0.1), -size * 0.85);
@@ -615,8 +746,18 @@ class AIFaceFilterEngine {
   drawFlowerCrown(ctx, fx, fy, fw, fh, angle, now) {
     const scale = this.filterScale;
     const crownW = fw * 0.95 * scale;
-    const centerX = fx + fw / 2;
+    const crownH = 50 * scale;
+    const centerX = fx + fw / 2 + this.offsetX;
     const headbandY = fy + fh * 0.05 + this.offsetY;
+
+    this.currentBounds = {
+      x: centerX - crownW / 2,
+      y: headbandY - crownH / 2,
+      w: crownW,
+      h: crownH,
+      cx: centerX,
+      cy: headbandY
+    };
 
     ctx.save();
     ctx.translate(centerX, headbandY);
@@ -627,7 +768,6 @@ class AIFaceFilterEngine {
 
     for (let i = 0; i < flowerCount; i++) {
       const x = -crownW / 2 + i * step;
-      // Arc curve over head
       const y = Math.pow(x / (crownW / 2), 2) * (fh * 0.12);
       const color = i % 2 === 0 ? '#fda4af' : '#fb7185';
       const rot = (now / 1500) + i;
@@ -642,7 +782,6 @@ class AIFaceFilterEngine {
     ctx.translate(x, y);
     ctx.rotate(rot);
 
-    // 5 Petals
     for (let p = 0; p < 5; p++) {
       ctx.save();
       ctx.rotate((p * Math.PI * 2) / 5);
@@ -653,7 +792,6 @@ class AIFaceFilterEngine {
       ctx.restore();
     }
 
-    // Yellow Stamen center
     ctx.beginPath();
     ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2);
     ctx.fillStyle = '#fde047';
@@ -669,18 +807,25 @@ class AIFaceFilterEngine {
     const scale = this.filterScale;
     const visorW = fw * 1.05 * scale;
     const visorH = visorW * 0.28;
-    const centerX = fx + fw / 2;
+    const centerX = fx + fw / 2 + this.offsetX;
     const centerY = fy + fh * 0.38 + this.offsetY;
+
+    this.currentBounds = {
+      x: centerX - visorW / 2,
+      y: centerY - visorH / 2,
+      w: visorW,
+      h: visorH,
+      cx: centerX,
+      cy: centerY
+    };
 
     ctx.save();
     ctx.translate(centerX, centerY);
     ctx.rotate(angle);
 
-    // Glowing Neon Aura
     ctx.shadowColor = '#00ffff';
     ctx.shadowBlur = 25;
 
-    // Curved Futuristic Visor Body
     ctx.beginPath();
     ctx.moveTo(-visorW / 2, -visorH / 2);
     ctx.lineTo(visorW / 2, -visorH / 2);
@@ -699,7 +844,6 @@ class AIFaceFilterEngine {
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // High-tech HUD grid lines & scanning beam
     ctx.shadowBlur = 0;
     const scanY = (Math.sin(now / 200) * 0.5 + 0.5) * visorH - visorH / 2;
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
@@ -709,7 +853,6 @@ class AIFaceFilterEngine {
     ctx.lineTo(visorW * 0.4, scanY);
     ctx.stroke();
 
-    // Glowing Cyber Text
     ctx.fillStyle = '#ffffff';
     ctx.font = `bold ${Math.round(11 * scale)}px monospace`;
     ctx.textAlign = 'center';
@@ -727,13 +870,23 @@ class AIFaceFilterEngine {
     const cheekDist = fw * 0.28 * scale;
     const cheekY = fy + fh * 0.46 + this.offsetY;
     const cheekRadius = fw * 0.14 * scale;
-    const centerX = fx + fw / 2;
+    const centerX = fx + fw / 2 + this.offsetX;
+    const totalW = fw * 0.95 * scale;
+    const totalH = fh * 0.8 * scale;
+
+    this.currentBounds = {
+      x: centerX - totalW / 2,
+      y: cheekY - totalH * 0.6,
+      w: totalW,
+      h: totalH,
+      cx: centerX,
+      cy: cheekY
+    };
 
     ctx.save();
     ctx.translate(centerX, cheekY);
     ctx.rotate(angle);
 
-    // Left & Right Blush Spots (Soft radial gradient)
     [-cheekDist, cheekDist].forEach(cx => {
       ctx.save();
       const grad = ctx.createRadialGradient(cx, 0, 0, cx, 0, cheekRadius);
@@ -745,7 +898,6 @@ class AIFaceFilterEngine {
       ctx.ellipse(cx, 0, cheekRadius, cheekRadius * 0.65, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // White sparkle accent
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.arc(cx - cheekRadius * 0.3, -cheekRadius * 0.15, 3.5 * scale, 0, Math.PI * 2);
@@ -753,7 +905,6 @@ class AIFaceFilterEngine {
       ctx.restore();
     });
 
-    // Floating Animated Hearts above head
     for (let i = 0; i < 3; i++) {
       const phase = (now / 700 + i * 1.5);
       const floatY = -fh * 0.55 - (phase % 2) * (fh * 0.25);
@@ -785,14 +936,22 @@ class AIFaceFilterEngine {
     const scale = this.filterScale;
     const hatW = fw * 0.85 * scale;
     const hatH = hatW * 0.75;
-    const centerX = fx + fw / 2;
+    const centerX = fx + fw / 2 + this.offsetX;
     const headTopY = fy + this.offsetY;
+
+    this.currentBounds = {
+      x: centerX - hatW / 2,
+      y: headTopY - hatH,
+      w: hatW,
+      h: hatH + fh * 0.7,
+      cx: centerX,
+      cy: headTopY
+    };
 
     ctx.save();
     ctx.translate(centerX, headTopY);
     ctx.rotate(angle);
 
-    // Top Hat Crown
     ctx.fillStyle = '#0f172a';
     ctx.beginPath();
     ctx.moveTo(-hatW * 0.38, -hatH);
@@ -802,16 +961,13 @@ class AIFaceFilterEngine {
     ctx.closePath();
     ctx.fill();
 
-    // Red Satin Ribbon on Hat
     ctx.fillStyle = '#dc2626';
     ctx.fillRect(-hatW * 0.34, -hatH * 0.28, hatW * 0.68, hatH * 0.14);
 
-    // Gold Buckle
     ctx.strokeStyle = '#eab308';
     ctx.lineWidth = 3;
     ctx.strokeRect(-hatW * 0.08, -hatH * 0.3, hatW * 0.16, hatH * 0.18);
 
-    // Hat Brim
     ctx.fillStyle = '#090d16';
     ctx.beginPath();
     ctx.ellipse(0, -hatH * 0.12, hatW * 0.52, hatH * 0.14, 0, 0, Math.PI * 2);
@@ -820,7 +976,6 @@ class AIFaceFilterEngine {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Mustache under nose
     const stacheY = fh * 0.58;
     this.drawMustache(ctx, 0, stacheY, fw * 0.52 * scale);
 
@@ -834,7 +989,6 @@ class AIFaceFilterEngine {
     ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
     ctx.shadowBlur = 8;
 
-    // Classic curved handlebar mustache
     ctx.beginPath();
     ctx.moveTo(0, -4);
     ctx.bezierCurveTo(-width * 0.25, -12, -width * 0.45, 0, -width * 0.5, -10);
@@ -853,8 +1007,17 @@ class AIFaceFilterEngine {
     const scale = this.filterScale;
     const boxW = fw * 1.15 * scale;
     const boxH = fh * 1.25 * scale;
-    const centerX = fx + fw / 2;
+    const centerX = fx + fw / 2 + this.offsetX;
     const centerY = fy + fh / 2 + this.offsetY;
+
+    this.currentBounds = {
+      x: centerX - boxW / 2,
+      y: centerY - boxH / 2,
+      w: boxW,
+      h: boxH,
+      cx: centerX,
+      cy: centerY
+    };
 
     ctx.save();
     ctx.translate(centerX, centerY);
@@ -869,35 +1032,30 @@ class AIFaceFilterEngine {
     ctx.shadowColor = '#00ffcc';
     ctx.shadowBlur = 15;
 
-    // Top-Left Corner Bracket
     ctx.beginPath();
     ctx.moveTo(-halfW, -halfH + cornerLen);
     ctx.lineTo(-halfW, -halfH);
     ctx.lineTo(-halfW + cornerLen, -halfH);
     ctx.stroke();
 
-    // Top-Right Corner Bracket
     ctx.beginPath();
     ctx.moveTo(halfW - cornerLen, -halfH);
     ctx.lineTo(halfW, -halfH);
     ctx.lineTo(halfW, -halfH + cornerLen);
     ctx.stroke();
 
-    // Bottom-Left Corner Bracket
     ctx.beginPath();
     ctx.moveTo(-halfW, halfH - cornerLen);
     ctx.lineTo(-halfW, halfH);
     ctx.lineTo(-halfW + cornerLen, halfH);
     ctx.stroke();
 
-    // Bottom-Right Corner Bracket
     ctx.beginPath();
     ctx.moveTo(halfW - cornerLen, halfH);
     ctx.lineTo(halfW, halfH);
     ctx.lineTo(halfW, halfH - cornerLen);
     ctx.stroke();
 
-    // Center Crosshair Reticle
     ctx.strokeStyle = 'rgba(0, 255, 204, 0.45)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -906,7 +1064,6 @@ class AIFaceFilterEngine {
     ctx.moveTo(0, -28); ctx.lineTo(0, 28);
     ctx.stroke();
 
-    // Vertical sweeping laser scan beam
     const scanY = Math.sin(now / 350) * (halfH * 0.9);
     const laserGrad = ctx.createLinearGradient(-halfW, scanY, halfW, scanY);
     laserGrad.addColorStop(0, 'rgba(0, 255, 204, 0)');
@@ -915,7 +1072,6 @@ class AIFaceFilterEngine {
     ctx.fillStyle = laserGrad;
     ctx.fillRect(-halfW, scanY - 2, boxW, 4);
 
-    // AI Meta Info Text
     ctx.shadowBlur = 0;
     ctx.fillStyle = '#00ffcc';
     ctx.font = 'bold 12px monospace';
@@ -934,8 +1090,17 @@ class AIFaceFilterEngine {
     const scale = this.filterScale;
     const maskW = fw * 0.98 * scale;
     const maskH = maskW * 0.42;
-    const centerX = fx + fw / 2;
+    const centerX = fx + fw / 2 + this.offsetX;
     const centerY = fy + fh * 0.38 + this.offsetY;
+
+    this.currentBounds = {
+      x: centerX - maskW / 2,
+      y: centerY - maskH / 2,
+      w: maskW,
+      h: maskH,
+      cx: centerX,
+      cy: centerY
+    };
 
     ctx.save();
     ctx.translate(centerX, centerY);
@@ -944,7 +1109,6 @@ class AIFaceFilterEngine {
     ctx.shadowColor = 'rgba(212, 175, 55, 0.6)';
     ctx.shadowBlur = 18;
 
-    // Mask Wing Silhouette
     ctx.beginPath();
     ctx.moveTo(-maskW / 2, -maskH * 0.4);
     ctx.bezierCurveTo(-maskW * 0.3, -maskH * 0.8, -maskW * 0.1, -maskH * 0.2, 0, -maskH * 0.35);
@@ -963,7 +1127,6 @@ class AIFaceFilterEngine {
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    // Eye Holes
     ctx.save();
     ctx.globalCompositeOperation = 'destination-out';
     ctx.beginPath();
