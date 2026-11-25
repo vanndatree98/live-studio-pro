@@ -1135,6 +1135,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Hide all source-specific panels first
       const linkSourceBar = document.getElementById('linkSourceBar');
       if (linkSourceBar) linkSourceBar.style.display = 'none';
+      const screenSourceBar = document.getElementById('screenSourceBar');
+      if (screenSourceBar && val !== 'screen') screenSourceBar.style.display = 'none';
+      const btnAutoScreenLive = document.getElementById('btnAutoScreenLive');
+      if (btnAutoScreenLive && val !== 'screen') btnAutoScreenLive.classList.remove('active');
 
       if (val === 'file') {
         if (linkControlsRow) linkControlsRow.style.display = 'none';
@@ -1173,41 +1177,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         showToast('🔗 បានប្តូរទៅប្រភពវីដេអូពី Link (YouTube / Facebook / TV URL)', 'success');
 
       } else if (val === 'screen') {
-        videoPlayerBar.style.display = 'none';
-        if (linkControlsRow) linkControlsRow.style.display = 'none';
-        fileVideo.pause();
-
-        try {
-          const screenStream = await navigator.mediaDevices.getDisplayMedia({
-            video: { frameRate: { ideal: streamConfig.fps } },
-            audio: true
-          });
-
-          if (currentStream) {
-            currentStream.getVideoTracks().forEach(t => t.stop());
-          }
-
-          const newVideoTrack = screenStream.getVideoTracks()[0];
-          videoTrack = newVideoTrack;
-          hiddenVideo.srcObject = screenStream;
-          await hiddenVideo.play();
-
-          hiddenVideo.onloadedmetadata = () => {
-            checkAutoOrientation(hiddenVideo);
-          };
-
-          newVideoTrack.onended = () => {
-            selectVideoSource.value = 'camera';
-            activeVideoSource = 'camera';
-            initCamera(streamConfig.cameraDeviceId);
-          };
-
-          showToast('🖥️ បានប្តូរទៅចែករំលែកអេក្រង់ (Screen Share)', 'success');
-        } catch (err) {
-          selectVideoSource.value = 'camera';
-          activeVideoSource = 'camera';
-          showToast('បានបោះបង់ការចែករំលែកអេក្រង់', 'warning');
-        }
+        startScreenCapture(false);
 
       } else {
         if (linkControlsRow) linkControlsRow.style.display = 'none';
@@ -1217,6 +1187,310 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
   }
+
+  // =========================================================================
+  // AUTO SCREEN CAPTURE & LIVE STREAMING (Live ចេញពីអេក្រង់ដោយស្វ័យប្រវត្តិ)
+  // =========================================================================
+  const screenSourceBar = document.getElementById('screenSourceBar');
+  const screenStatusBadge = document.getElementById('screenStatusBadge');
+  const btnTriggerScreenCapture = document.getElementById('btnTriggerScreenCapture');
+  const btnAutoScreenLive = document.getElementById('btnAutoScreenLive');
+  const checkAutoLiveOnScreen = document.getElementById('checkAutoLiveOnScreen');
+  const checkAutoCaptureOnStart = document.getElementById('checkAutoCaptureOnStart');
+  const checkSystemAudio = document.getElementById('checkSystemAudio');
+  const sliderSystemAudioVolume = document.getElementById('sliderSystemAudioVolume');
+  const systemAudioVolText = document.getElementById('systemAudioVolText');
+  const checkEnableFacecam = document.getElementById('checkEnableFacecam');
+  const selectFacecamPos = document.getElementById('selectFacecamPos');
+
+  let screenStream = null;
+  let screenAudioNode = null;
+  let screenGainNode = null;
+  let facecamStream = null;
+  let facecamVideo = document.createElement('video');
+  facecamVideo.autoplay = true;
+  facecamVideo.playsInline = true;
+  facecamVideo.muted = true;
+
+  // Restore saved screen preferences
+  if (checkAutoCaptureOnStart) {
+    checkAutoCaptureOnStart.checked = localStorage.getItem('lsp_auto_screen_start') === 'true';
+    checkAutoCaptureOnStart.addEventListener('change', (e) => {
+      localStorage.setItem('lsp_auto_screen_start', e.target.checked ? 'true' : 'false');
+      showToast(e.target.checked ? '⚡ បានបើកចាប់អេក្រង់ស្វ័យប្រវត្តពេលបើកកម្មវិធី' : '⚡ បានបិទ', 'info');
+    });
+  }
+
+  if (checkAutoLiveOnScreen) {
+    checkAutoLiveOnScreen.checked = localStorage.getItem('lsp_auto_live_screen') === 'true';
+    checkAutoLiveOnScreen.addEventListener('change', (e) => {
+      localStorage.setItem('lsp_auto_live_screen', e.target.checked ? 'true' : 'false');
+      showToast(e.target.checked ? '🔴 បានបើក Live ស្វ័យប្រវត្តពេលចាប់បានអេក្រង់' : '🔴 បានបិទ', 'info');
+    });
+  }
+
+  // System Audio Volume slider
+  if (sliderSystemAudioVolume) {
+    sliderSystemAudioVolume.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      if (systemAudioVolText) systemAudioVolText.textContent = `${val}%`;
+      if (screenGainNode) {
+        screenGainNode.gain.value = val / 100;
+      }
+    });
+  }
+
+  // Facecam PiP toggle
+  if (checkEnableFacecam) {
+    checkEnableFacecam.addEventListener('change', async (e) => {
+      if (e.target.checked) {
+        try {
+          facecamStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              deviceId: streamConfig.cameraDeviceId ? { exact: streamConfig.cameraDeviceId } : undefined,
+              width: { ideal: 640 },
+              height: { ideal: 360 }
+            },
+            audio: false
+          });
+          facecamVideo.srcObject = facecamStream;
+          await facecamVideo.play();
+          window.__isFacecamActive = true;
+          showToast('📷 បានបើក Facecam PiP នៅជ្រុងអេក្រង់', 'success');
+        } catch (err) {
+          console.warn('[Facecam error]', err);
+          showToast('មិនអាចបើក Facecam បានទេ៖ ' + err.message, 'warning');
+          e.target.checked = false;
+          window.__isFacecamActive = false;
+        }
+      } else {
+        window.__isFacecamActive = false;
+        if (facecamStream) {
+          facecamStream.getTracks().forEach(t => t.stop());
+          facecamStream = null;
+        }
+        showToast('📷 បានបិទ Facecam PiP', 'info');
+      }
+    });
+  }
+
+  async function startScreenCapture(autoLive = false) {
+    activeVideoSource = 'screen';
+    if (selectVideoSource) selectVideoSource.value = 'screen';
+
+    // UI Updates
+    if (videoPlayerBar) videoPlayerBar.style.display = 'none';
+    if (linkSourceBar) linkSourceBar.style.display = 'none';
+    if (linkControlsRow) linkControlsRow.style.display = 'none';
+    if (screenSourceBar) screenSourceBar.style.display = 'flex';
+    if (btnAutoScreenLive) btnAutoScreenLive.classList.add('active');
+    fileVideo.pause();
+
+    try {
+      if (screenStatusBadge) {
+        screenStatusBadge.textContent = '⏳ កំពុងភ្ជាប់អេក្រង់...';
+        screenStatusBadge.className = 'screen-badge';
+      }
+
+      let newStream = null;
+      const isElectron = window.electronAPI && window.electronAPI.isElectron;
+
+      // 1. In Electron, attempt auto-capturing primary monitor without popup dialog
+      if (isElectron && typeof window.electronAPI.getDesktopSources === 'function') {
+        try {
+          const sources = await window.electronAPI.getDesktopSources();
+          const primaryScreen = sources.find(s => s.id.startsWith('screen:') || s.name.toLowerCase().includes('entire screen') || s.name.toLowerCase().includes('screen 1')) || sources[0];
+
+          if (primaryScreen) {
+            newStream = await navigator.mediaDevices.getUserMedia({
+              audio: checkSystemAudio && checkSystemAudio.checked ? {
+                mandatory: {
+                  chromeMediaSource: 'desktop'
+                }
+              } : false,
+              video: {
+                mandatory: {
+                  chromeMediaSource: 'desktop',
+                  chromeMediaSourceId: primaryScreen.id,
+                  minWidth: 1280,
+                  maxWidth: 1920,
+                  minHeight: 720,
+                  maxHeight: 1080,
+                  minFrameRate: 30,
+                  maxFrameRate: 60
+                }
+              }
+            });
+          }
+        } catch (electronCaptureErr) {
+          console.warn('[ScreenCapture] Electron desktopCapturer getUserMedia fallback:', electronCaptureErr);
+        }
+      }
+
+      // 2. Standard Browser fallback / getDisplayMedia
+      if (!newStream) {
+        newStream = await navigator.mediaDevices.getDisplayMedia({
+          video: { frameRate: { ideal: streamConfig.fps || 30 } },
+          audio: checkSystemAudio && checkSystemAudio.checked
+        });
+      }
+
+      // Stop previous camera track to prevent conflicting access
+      if (currentStream) {
+        currentStream.getVideoTracks().forEach(t => t.stop());
+      }
+
+      screenStream = newStream;
+      const newVideoTrack = screenStream.getVideoTracks()[0];
+      videoTrack = newVideoTrack;
+      hiddenVideo.srcObject = screenStream;
+      await hiddenVideo.play();
+
+      hiddenVideo.onloadedmetadata = () => {
+        checkAutoOrientation(hiddenVideo);
+      };
+
+      // 3. Audio routing: Connect System Audio into the Live Stream Destination
+      if (screenStream.getAudioTracks().length > 0) {
+        ensureAudioGraph();
+        try {
+          if (!screenAudioNode) {
+            screenAudioNode = audioContext.createMediaStreamSource(screenStream);
+            screenGainNode = audioContext.createGain();
+            const vol = sliderSystemAudioVolume ? parseInt(sliderSystemAudioVolume.value, 10) / 100 : 1;
+            screenGainNode.gain.value = vol;
+
+            screenAudioNode.connect(screenGainNode);
+            screenGainNode.connect(audioDestNode);
+            if (analyserNode) {
+              screenGainNode.connect(analyserNode);
+            }
+          }
+        } catch (audErr) {
+          console.warn('[Screen Audio routing]', audErr);
+        }
+      }
+
+      newVideoTrack.onended = () => {
+        if (selectVideoSource) selectVideoSource.value = 'camera';
+        activeVideoSource = 'camera';
+        if (screenSourceBar) screenSourceBar.style.display = 'none';
+        if (btnAutoScreenLive) btnAutoScreenLive.classList.remove('active');
+        if (screenStatusBadge) {
+          screenStatusBadge.textContent = '⚡ ត្រៀមរួចរាល់ (Ready)';
+          screenStatusBadge.className = 'screen-badge';
+        }
+        initCamera(streamConfig.cameraDeviceId);
+      };
+
+      if (screenStatusBadge) {
+        screenStatusBadge.textContent = '🟢 កំពុងផ្សាយចេញពីអេក្រង់ (Active)';
+        screenStatusBadge.className = 'screen-badge active';
+      }
+
+      showToast('🖥️ បានចាប់យកអេក្រង់កុំព្យូទ័រជោគជ័យ!', 'success');
+
+      // 4. Auto Start Live if requested
+      if (autoLive || (checkAutoLiveOnScreen && checkAutoLiveOnScreen.checked)) {
+        if (!isStreaming) {
+          showToast('🔴 កំពុងចាប់ផ្តើមផ្សាយ Live ស្វ័យប្រវត្តិ...', 'info');
+          const btnStartStream = document.getElementById('btnStartStream');
+          if (btnStartStream) btnStartStream.click();
+        }
+      }
+
+    } catch (err) {
+      console.warn('[Screen Capture Error]', err);
+      if (selectVideoSource) selectVideoSource.value = 'camera';
+      activeVideoSource = 'camera';
+      if (screenSourceBar) screenSourceBar.style.display = 'none';
+      if (btnAutoScreenLive) btnAutoScreenLive.classList.remove('active');
+      if (screenStatusBadge) {
+        screenStatusBadge.textContent = '❌ បានបោះបង់ (Cancelled)';
+        screenStatusBadge.className = 'screen-badge';
+      }
+      showToast('បានបោះបង់ការចាប់យកអេក្រង់', 'warning');
+      initCamera(streamConfig.cameraDeviceId);
+    }
+  }
+
+  // Trigger buttons
+  if (btnTriggerScreenCapture) {
+    btnTriggerScreenCapture.addEventListener('click', () => {
+      startScreenCapture(false);
+    });
+  }
+
+  if (btnAutoScreenLive) {
+    btnAutoScreenLive.addEventListener('click', () => {
+      if (activeVideoSource === 'screen') {
+        showToast('អេក្រង់កំពុងដំណើរការស្រាប់', 'info');
+      } else {
+        startScreenCapture(checkAutoLiveOnScreen ? checkAutoLiveOnScreen.checked : true);
+      }
+    });
+  }
+
+  // Render Facecam PiP function
+  window.__renderFacecamPiP = function(targetCtx, canvasW, canvasH) {
+    if (!facecamVideo || facecamVideo.readyState < 2) return;
+    const pipW = Math.round(canvasW * 0.22);
+    const pipH = Math.round(pipW * (facecamVideo.videoHeight / facecamVideo.videoWidth || 9 / 16));
+    const pad = 24;
+
+    const pos = selectFacecamPos ? selectFacecamPos.value : 'br';
+    let x = canvasW - pipW - pad;
+    let y = canvasH - pipH - pad;
+
+    if (pos === 'bl') {
+      x = pad;
+      y = canvasH - pipH - pad;
+    } else if (pos === 'tr') {
+      x = canvasW - pipW - pad;
+      y = pad;
+    } else if (pos === 'tl') {
+      x = pad;
+      y = pad;
+    }
+
+    targetCtx.save();
+    // Shadow
+    targetCtx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+    targetCtx.shadowBlur = 18;
+    targetCtx.shadowOffsetX = 0;
+    targetCtx.shadowOffsetY = 8;
+
+    // Rounded Squircle Clip
+    targetCtx.beginPath();
+    if (typeof targetCtx.roundRect === 'function') {
+      targetCtx.roundRect(x, y, pipW, pipH, 16);
+    } else {
+      targetCtx.rect(x, y, pipW, pipH);
+    }
+    targetCtx.closePath();
+
+    // Background fill
+    targetCtx.fillStyle = '#000';
+    targetCtx.fill();
+    targetCtx.clip();
+
+    // Draw camera
+    targetCtx.drawImage(facecamVideo, x, y, pipW, pipH);
+    targetCtx.restore();
+
+    // Glow Border (iOS 27 style)
+    targetCtx.save();
+    targetCtx.beginPath();
+    if (typeof targetCtx.roundRect === 'function') {
+      targetCtx.roundRect(x, y, pipW, pipH, 16);
+    } else {
+      targetCtx.rect(x, y, pipW, pipH);
+    }
+    targetCtx.lineWidth = 3;
+    targetCtx.strokeStyle = 'rgba(56, 189, 248, 0.75)';
+    targetCtx.stroke();
+    targetCtx.restore();
+  };
 
   // 9.5 Link Source Logic (YouTube / Facebook / TV / Direct URL)
   const linkSourceBar = document.getElementById('linkSourceBar');
@@ -1608,6 +1882,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Render AI Face Tracking Filters if enabled
       if (faceFilterEngine && faceFilterEngine.enabled) {
         faceFilterEngine.processAndRender(ctx, activeVid, width, height, isFlipped && activeVideoSource === 'camera');
+      }
+
+      // Render Facecam PiP (Picture-in-Picture) if streaming screen
+      if (activeVideoSource === 'screen' && window.__isFacecamActive && typeof window.__renderFacecamPiP === 'function') {
+        window.__renderFacecamPiP(ctx, width, height);
       }
     } else {
       drawFallbackCanvas('សូមផ្ទុកវីដេអូ ឬបើកកាមេរ៉ា (Load Video or Enable Camera)');
@@ -3632,7 +3911,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 17. Start Studio! (Start render loop immediately so UI and overlays render without delay)
   renderLoop();
-  initCamera().catch(err => {
+  initCamera().then(() => {
+    if (localStorage.getItem('lsp_auto_screen_start') === 'true') {
+      setTimeout(() => {
+        startScreenCapture(localStorage.getItem('lsp_auto_live_screen') === 'true');
+      }, 800);
+    }
+  }).catch(err => {
     console.warn('[Camera auto-init notice]', err);
+    if (localStorage.getItem('lsp_auto_screen_start') === 'true') {
+      startScreenCapture(localStorage.getItem('lsp_auto_live_screen') === 'true');
+    }
   });
 });

@@ -282,6 +282,65 @@
           </div>
         </div>
 
+        <!-- Screen Source Control Bar (🖥️ Live ចេញពីអេក្រង់ដោយស្វ័យប្រវត្តិ) -->
+        <div class="screen-source-bar" id="screenSourceBar" style="display:none;">
+          <div class="screen-source-header">
+            <div class="screen-source-title">
+              <span class="screen-icon">🖥️</span>
+              <div>
+                <strong style="color:#fff; font-size:13.5px;">Live ចេញពីអេក្រង់ (Auto Screen Live)</strong>
+                <span class="screen-badge" id="screenStatusBadge">⚡ ត្រៀមរួចរាល់ (Ready)</span>
+              </div>
+            </div>
+            <div class="screen-switches">
+              <label class="screen-switch-label" title="ផ្សាយផ្ទាល់ដោយស្វ័យប្រវត្តភ្លាមៗ ពេលចាប់បានអេក្រង់">
+                <input type="checkbox" id="checkAutoLiveOnScreen">
+                <span>🔴 Live ស្វ័យប្រវត្តិពេលចាប់អេក្រង់</span>
+              </label>
+              <label class="screen-switch-label" title="ចាប់យកអេក្រង់ដោយស្វ័យប្រវត្តពេលបើកកម្មវិធី">
+                <input type="checkbox" id="checkAutoCaptureOnStart">
+                <span>⚡ ចាប់អេក្រង់ស្វ័យប្រវត្តិពេលបើក</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="screen-source-tools-row">
+            <button class="btn btn-primary btn-sm" id="btnTriggerScreenCapture" type="button" title="ចាប់យកអេក្រង់កុំព្យូទ័រ">
+              🖥️ ចាប់យកអេក្រង់ឥឡូវនេះ (Capture Screen)
+            </button>
+            <div class="screen-audio-group">
+              <label class="screen-audio-toggle" title="បើកសម្លេងកុំព្យូទ័រ (System Audio) ដូចជាចម្រៀង ហ្គេម វីដេអូ">
+                <input type="checkbox" id="checkSystemAudio" checked>
+                <span>🔊 សម្លេងកុំព្យូទ័រ (System Sound)</span>
+              </label>
+              <input type="range" id="sliderSystemAudioVolume" min="0" max="150" value="100" class="volume-slider-sm" title="កម្រិតសម្លេងកុំព្យូទ័រ">
+              <span id="systemAudioVolText" class="screen-vol-val">100%</span>
+            </div>
+
+            <!-- Facecam PiP (Webcam Overlay over Screen) -->
+            <div class="facecam-group">
+              <label class="screen-audio-toggle" title="បង្ហាញមុខ Webcam នៅជ្រុងអេក្រង់ (Picture-in-Picture)">
+                <input type="checkbox" id="checkEnableFacecam">
+                <span>📷 ដាក់រូបមុខ Facecam PiP</span>
+              </label>
+              <select id="selectFacecamPos" class="form-select form-select-sm" style="width: auto; padding: 2px 6px; font-size: 11px;">
+                <option value="br" selected>ជ្រុងក្រោមស្តាំ</option>
+                <option value="bl">ជ្រុងក្រោមឆ្វេង</option>
+                <option value="tr">ជ្រុងលើស្តាំ</option>
+                <option value="tl">ជ្រុងលើឆ្វេង</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="screen-quick-presets">
+            <span class="screen-preset-label">💡 គន្លឹះ Live៖</span>
+            <span class="screen-preset-tag">🎮 Stream ហ្គេម PC</span>
+            <span class="screen-preset-tag">📊 បង្រៀន / បង្ហាញ Slide</span>
+            <span class="screen-preset-tag">🛍️ Live លក់ទំនិញតាម Browser</span>
+            <span class="screen-preset-tag">🎬 ចាក់ភាពយន្តពីកុំព្យូទ័រ</span>
+          </div>
+        </div>
+
         <!-- Media Devices & Quick Control Bar -->
         <div class="monitor-controls">
           <div class="control-group">
@@ -292,6 +351,12 @@
               <option value="file">📂 ផ្ទុកវីដេអូពីកុំព្យូទ័រ (Video File)</option>
               <option value="link">🔗 Link YouTube / Facebook / TV (URL)</option>
             </select>
+          </div>
+
+          <div class="control-group">
+            <button class="btn btn-sm btn-screen-live" id="btnAutoScreenLive" type="button" title="Live ចេញពីអេក្រង់កុំព្យូទ័រដោយស្វ័យប្រវត្តិ">
+              🖥️ Live អេក្រង់ស្វ័យប្រវត្តិ
+            </button>
           </div>
 
           <div class="control-group">

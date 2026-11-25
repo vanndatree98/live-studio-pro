@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog, desktopCapturer } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -296,6 +296,26 @@ ipcMain.handle('set-close-to-tray', (event, enabled) => {
   saveSettings();
   updateTrayMenu();
   return appSettings;
+});
+
+// Auto Screen Capture: Fetch available monitors and windows
+ipcMain.handle('get-desktop-sources', async () => {
+  try {
+    const sources = await desktopCapturer.getSources({
+      types: ['screen', 'window'],
+      thumbnailSize: { width: 320, height: 180 },
+      fetchWindowIcons: true
+    });
+    return sources.map(s => ({
+      id: s.id,
+      name: s.name,
+      display_id: s.display_id,
+      thumbnail: s.thumbnail ? s.thumbnail.toDataURL() : null
+    }));
+  } catch (err) {
+    console.error('[Capturer] Failed to get desktop sources:', err.message);
+    return [];
+  }
 });
 
 // Second instance focus

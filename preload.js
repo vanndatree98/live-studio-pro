@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setRunAtStartup: (enabled) => ipcRenderer.invoke('set-run-at-startup', enabled),
   setCloseToTray: (enabled) => ipcRenderer.invoke('set-close-to-tray', enabled),
 
+  // Screen Capture Sources (Auto Desktop Capture)
+  getDesktopSources: () => ipcRenderer.invoke('get-desktop-sources'),
+
   // Events from Main process (e.g., tray action)
   onSettingsChanged: (callback) => {
     ipcRenderer.on('settings-changed', (event, data) => callback(data));
