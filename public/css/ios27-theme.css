@@ -1,0 +1,474 @@
+/* ==========================================================================
+   LIVE STUDIO PRO - iOS 27 LIQUID GLASS DESIGN SYSTEM
+   Ultra-modern Apple frosted glass, Dynamic Island, traffic lights & squircle
+   ========================================================================== */
+
+:root {
+  --ios-blur: blur(40px) saturate(210%) brightness(1.08);
+  --ios-blur-subtle: blur(25px) saturate(180%);
+  --ios-glass-bg: rgba(15, 23, 42, 0.72);
+  --ios-glass-card: rgba(22, 30, 49, 0.65);
+  --ios-glass-hover: rgba(30, 41, 67, 0.75);
+  --ios-glass-border: 1px solid rgba(255, 255, 255, 0.12);
+  --ios-glass-border-glow: 1px solid rgba(139, 92, 246, 0.45);
+  --ios-specular-highlight: linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(255, 255, 255, 0.08) 100%);
+  --ios-squircle-xs: 10px;
+  --ios-squircle-sm: 16px;
+  --ios-squircle-md: 22px;
+  --ios-squircle-lg: 32px;
+  --ios-shadow-floating: 0 16px 40px -8px rgba(0, 0, 0, 0.55), 0 0 1px 1px rgba(255, 255, 255, 0.08);
+  --ios-glow-purple: 0 0 25px rgba(139, 92, 246, 0.35);
+  --ios-glow-green: 0 0 25px rgba(34, 197, 94, 0.35);
+  --ios-glow-cyan: 0 0 25px rgba(6, 182, 212, 0.35);
+}
+
+/* ==========================================================================
+   TOP BAR: iOS 27 DYNAMIC ISLAND & TRAFFIC LIGHT WINDOW CONTROLS
+   ========================================================================== */
+.ios27-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  padding: 0 18px;
+  background: rgba(10, 15, 29, 0.82);
+  backdrop-filter: var(--ios-blur);
+  -webkit-backdrop-filter: var(--ios-blur);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  z-index: 1000;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+/* Traffic Lights (Apple style Window Controls) */
+.ios-traffic-lights {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.ios-traffic-btn {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 900;
+  color: rgba(0, 0, 0, 0.6);
+  opacity: 0.9;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+  outline: none;
+}
+
+.ios-traffic-btn span {
+  display: none;
+  line-height: 1;
+}
+
+.ios-traffic-lights:hover .ios-traffic-btn span {
+  display: block;
+}
+
+.ios-traffic-close {
+  background: #ff5f56;
+  border: 1px solid #e0443e;
+  box-shadow: 0 0 8px rgba(255, 95, 86, 0.4);
+}
+
+.ios-traffic-close:hover {
+  background: #ff3b30;
+  transform: scale(1.1);
+}
+
+.ios-traffic-min {
+  background: #ffbd2e;
+  border: 1px solid #dea123;
+  box-shadow: 0 0 8px rgba(255, 189, 46, 0.4);
+}
+
+.ios-traffic-min:hover {
+  background: #ffaa00;
+  transform: scale(1.1);
+}
+
+.ios-traffic-max {
+  background: #27c93f;
+  border: 1px solid #1aab29;
+  box-shadow: 0 0 8px rgba(39, 201, 63, 0.4);
+}
+
+.ios-traffic-max:hover {
+  background: #34c759;
+  transform: scale(1.1);
+}
+
+/* Dynamic Island Capsule (Center of Title Bar) */
+.ios-dynamic-island {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 16px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  backdrop-filter: var(--ios-blur);
+  -webkit-backdrop-filter: var(--ios-blur);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  -webkit-app-region: no-drag;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ios-dynamic-island:hover {
+  background: rgba(0, 0, 0, 0.75);
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: 0 6px 25px rgba(139, 92, 246, 0.35);
+  transform: translateX(-50%) scale(1.02);
+}
+
+.ios-island-pulse {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981;
+  animation: iosPulse 2s infinite ease-in-out;
+}
+
+.ios-island-pulse.live {
+  background: #ef4444;
+  box-shadow: 0 0 12px #ef4444;
+}
+
+@keyframes iosPulse {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+.ios-island-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ios-island-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  background: rgba(139, 92, 246, 0.25);
+  color: #c4b5fd;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  border-radius: 9999px;
+}
+
+/* Right Action Buttons in Titlebar */
+.ios-titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.btn-ios-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 13px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  color: #e2e8f0;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(10px);
+}
+
+.btn-ios-pill:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.btn-ios-pill.primary {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(99, 102, 241, 0.4));
+  border-color: rgba(139, 92, 246, 0.5);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
+}
+
+.btn-ios-pill.primary:hover {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.6), rgba(99, 102, 241, 0.6));
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.45);
+}
+
+/* ==========================================================================
+   iOS 27 DESKTOP SETTINGS MODAL (TRAY & STARTUP CONTROLS)
+   ========================================================================== */
+.ios27-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ios27-modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.ios27-modal-card {
+  width: 90%;
+  max-width: 540px;
+  background: rgba(18, 24, 38, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--ios-squircle-lg);
+  padding: 26px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 1px 1px rgba(255, 255, 255, 0.1);
+  backdrop-filter: var(--ios-blur);
+  -webkit-backdrop-filter: var(--ios-blur);
+  transform: scale(0.94) translateY(15px);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ios27-modal-overlay.active .ios27-modal-card {
+  transform: scale(1) translateY(0);
+}
+
+.ios27-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ios27-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.ios27-modal-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: #94a3b8;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ios27-modal-close:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #fff;
+}
+
+/* iOS 27 Settings List Cards */
+.ios27-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.ios27-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--ios-squircle-md);
+  transition: all 0.25s ease;
+}
+
+.ios27-setting-row:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(139, 92, 246, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.ios27-setting-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 78%;
+}
+
+.ios27-setting-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.ios27-icon-tray {
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  color: #fff;
+}
+
+.ios27-icon-startup {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+}
+
+.ios27-icon-glass {
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  color: #fff;
+}
+
+.ios27-setting-text h4 {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0 0 3px 0;
+}
+
+.ios27-setting-text p {
+  font-size: 11.5px;
+  color: #94a3b8;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* iOS 27 Fluid Switch (Toggle) */
+.ios-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.ios-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.ios-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 34px;
+}
+
+.ios-slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ios-switch input:checked + .ios-slider {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: #10b981;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+}
+
+.ios-switch input:checked + .ios-slider:before {
+  transform: translateX(20px);
+}
+
+/* Desktop App Banner / Status Card */
+.ios27-banner-card {
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(6, 182, 212, 0.12));
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: var(--ios-squircle-md);
+  margin-top: 14px;
+}
+
+.ios27-banner-card h5 {
+  font-size: 12px;
+  font-weight: 700;
+  color: #c4b5fd;
+  margin: 0 0 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ios27-banner-card p {
+  font-size: 11px;
+  color: #cbd5e1;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Glass Enhancement for Main Studio Panels */
+body.ios27-theme {
+  background-color: #070a13;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.18) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.15) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.12) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+body.ios27-theme .header,
+body.ios27-theme .sidebar,
+body.ios27-theme .chat-container,
+body.ios27-theme .preview-container {
+  backdrop-filter: var(--ios-blur-subtle);
+  -webkit-backdrop-filter: var(--ios-blur-subtle);
+  border-radius: var(--ios-squircle-md);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}

@@ -1,13 +1,25 @@
 {
-  "name": "live-youtube",
+  "name": "live-studio-pro",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
+  "description": "Live Studio PRO - iOS 27 Desktop Edition for Live Streaming",
+  "main": "main.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "electron": "electron .",
+    "electron:dev": "electron .",
+    "build:exe": "electron-builder --win",
+    "dist": "electron-builder --win nsis",
+    "dist:portable": "electron-builder --win portable"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "live-streaming",
+    "youtube-live",
+    "facebook-live",
+    "studio",
+    "electron",
+    "ios27"
+  ],
+  "author": "Live Studio PRO Team",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
@@ -16,5 +28,50 @@
     "dotenv": "^18.0.9",
     "express": "^5.3.0",
     "ws": "^8.22.1"
+  },
+  "devDependencies": {
+    "electron": "^45.5.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.livestudio.pro",
+    "productName": "Live Studio PRO",
+    "copyright": "Copyright © 2026 Live Studio PRO",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Live Studio PRO",
+      "runAfterFinish": true
+    },
+    "files": [
+      "**/*",
+      "!dist/**",
+      "!assets/icon.svg",
+      "!*.log",
+      "!brain/**",
+      "!**/*.git/**"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/@ffmpeg-installer/**",
+      "yt-dlp.exe"
+    ]
   }
 }

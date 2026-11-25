@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <!-- Liquid Glass iOS 27 Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="40%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#030712"/>
+    </linearGradient>
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#38bdf8" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#ec4899" stop-opacity="0.8"/>
+    </linearGradient>
+    <linearGradient id="lensGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="liveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff3b30"/>
+      <stop offset="100%" stop-color="#e11d48"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- iOS 27 Squircle Background -->
+  <rect x="24" y="24" width="464" height="464" rx="115" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="8"/>
+
+  <!-- Specular Glass Highlight -->
+  <path d="M 139 32 Q 373 32 450 115 C 470 137 475 160 440 180 C 320 250 160 210 52 140 C 40 110 80 40 139 32 Z" fill="white" opacity="0.08"/>
+
+  <!-- Concentric Broadcast Waves -->
+  <circle cx="256" cy="240" r="140" fill="none" stroke="#8b5cf6" stroke-width="4" opacity="0.3" stroke-dasharray="10 14"/>
+  <circle cx="256" cy="240" r="175" fill="none" stroke="#06b6d4" stroke-width="3" opacity="0.2" stroke-dasharray="8 12"/>
+
+  <!-- Camera Outer Ring -->
+  <circle cx="256" cy="240" r="100" fill="#1e293b" stroke="url(#lensGrad)" stroke-width="8" filter="url(#glow)"/>
+  <circle cx="256" cy="240" r="76" fill="#0f172a" stroke="#ffffff" stroke-width="2" opacity="0.2"/>
+
+  <!-- Inner Camera Iris -->
+  <circle cx="256" cy="240" r="52" fill="url(#lensGrad)"/>
+  <circle cx="236" cy="220" r="14" fill="#ffffff" opacity="0.7"/>
+
+  <!-- Glowing LIVE Pill Badge -->
+  <rect x="176" y="380" width="160" height="52" rx="26" fill="url(#liveGrad)" filter="url(#glow)"/>
+  <circle cx="206" cy="406" r="8" fill="#ffffff"/>
+  <text x="226" y="415" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="900" fill="#ffffff" letter-spacing="3">LIVE</text>
+</svg>

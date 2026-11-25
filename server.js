@@ -7,7 +7,10 @@ const { spawn } = require('child_process');
 const { WebSocketServer } = require('ws');
 
 // ─── yt-dlp resolver (auto-download yt-dlp.exe on first use) ────────────────
-const YTDLP_EXE = path.join(__dirname, 'yt-dlp.exe');
+let YTDLP_EXE = path.join(__dirname, 'yt-dlp.exe');
+if (YTDLP_EXE.includes('app.asar')) {
+  YTDLP_EXE = YTDLP_EXE.replace('app.asar', 'app.asar.unpacked');
+}
 const YTDLP_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe';
 
 let ytdlpReady = fs.existsSync(YTDLP_EXE);
@@ -136,6 +139,9 @@ if (ytdlpReady) {
 let ffmpegPath = 'ffmpeg';
 try {
   ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+  if (ffmpegPath && ffmpegPath.includes('app.asar')) {
+    ffmpegPath = ffmpegPath.replace('app.asar', 'app.asar.unpacked');
+  }
 } catch (e) {
   console.warn('Using system ffmpeg fallback:', e.message);
 }

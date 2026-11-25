@@ -9,8 +9,30 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Inter:wght@300;400;500;600;700;800&family=Kantumruy+Pro:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/ios27-theme.css">
 </head>
 <body>
+  <!-- iOS 27 Title Bar with Traffic Lights & Dynamic Island -->
+  <div class="ios27-titlebar" id="ios27Titlebar">
+    <div class="ios-traffic-lights">
+      <button type="button" class="ios-traffic-btn ios-traffic-close" id="btnIosClose" title="បិទ (ពង្រួមទៅ Taskbar Tray ការ Live មិនដាច់)"><span>✕</span></button>
+      <button type="button" class="ios-traffic-btn ios-traffic-min" id="btnIosMin" title="បង្រួមអប្បបរមា (Minimize)"><span>−</span></button>
+      <button type="button" class="ios-traffic-btn ios-traffic-max" id="btnIosMax" title="ពង្រីកពេញអេក្រង់ (Maximize)"><span>+</span></button>
+    </div>
+
+    <div class="ios-dynamic-island" id="iosDynamicIsland" title="ចុចដើម្បីបើកការកំណត់ iOS 27 Desktop & Startup">
+      <span class="ios-island-pulse" id="iosIslandPulse"></span>
+      <span class="ios-island-title">Live Studio <span style="color:#a855f7;">PRO</span></span>
+      <span class="ios-island-tag">iOS 27 Edition</span>
+    </div>
+
+    <div class="ios-titlebar-actions">
+      <button type="button" class="btn-ios-pill primary" id="btnOpenDesktopSettings" title="ការកំណត់លើកុំព្យូទ័រ (Startup, Tray, iOS 27)">
+        ⚙️ iOS 27 Desktop
+      </button>
+    </div>
+  </div>
+
   <!-- Header / Top Bar -->
   <header class="top-nav">
     <div class="nav-left">
@@ -1521,6 +1543,75 @@
     </div>
   </div>
 
+  <!-- iOS 27 Desktop Settings Modal (Tray & Startup) -->
+  <div class="ios27-modal-overlay" id="iosDesktopModal">
+    <div class="ios27-modal-card">
+      <div class="ios27-modal-header">
+        <div class="ios27-modal-title">
+          <span style="font-size:22px;">⚙️</span>
+          <div>
+            <h3 style="margin:0; font-size:16px;">ការកំណត់កម្មវិធីលើកុំព្យូទ័រ (Desktop Settings)</h3>
+            <span style="font-size:11px; color:#a855f7;">Live Studio PRO • iOS 27 Liquid Glass</span>
+          </div>
+        </div>
+        <button type="button" class="ios27-modal-close" id="btnCloseDesktopModal">✕</button>
+      </div>
+
+      <div class="ios27-settings-group">
+        <!-- Setting 1: Close to Tray -->
+        <div class="ios27-setting-row">
+          <div class="ios27-setting-info">
+            <div class="ios27-setting-icon ios27-icon-tray">🛡️</div>
+            <div class="ios27-setting-text">
+              <h4>បិទទៅ Taskbar Tray (ការ Live មិនដាច់)</h4>
+              <p>ពេលចុចបិទពីរបារ Taskbar ឬចុច X កម្មវិធីនឹងរត់ទៅពួនក្នុង System Tray ខាងក្រោមស្តាំ ដោយការ Live នៅតែដំណើរការធម្មតា។</p>
+            </div>
+          </div>
+          <label class="ios-switch">
+            <input type="checkbox" id="checkCloseToTray" checked>
+            <span class="ios-slider"></span>
+          </label>
+        </div>
+
+        <!-- Setting 2: Run On Startup -->
+        <div class="ios27-setting-row">
+          <div class="ios27-setting-info">
+            <div class="ios27-setting-icon ios27-icon-startup">🚀</div>
+            <div class="ios27-setting-text">
+              <h4>Run On Startup (ដំណើរការពេលបើកកុំព្យូទ័រ)</h4>
+              <p>បើកដំណើរការ Live Studio PRO ដោយស្វ័យប្រវត្តពេលបើកម៉ាស៊ីនកុំព្យូទ័រឡើង ដើម្បីត្រៀមខ្លួនរួចរាល់ជានិច្ច។</p>
+            </div>
+          </div>
+          <label class="ios-switch">
+            <input type="checkbox" id="checkRunOnStartup">
+            <span class="ios-slider"></span>
+          </label>
+        </div>
+
+        <!-- Setting 3: iOS 27 Glass Glow Theme -->
+        <div class="ios27-setting-row">
+          <div class="ios27-setting-info">
+            <div class="ios27-setting-icon ios27-icon-glass">✨</div>
+            <div class="ios27-setting-text">
+              <h4>ស្ទីលបែប iOS 27 Liquid Glass</h4>
+              <p>បើកដំណើរការពន្លឺកញ្ចក់ Frosted Glass, Squircle Panels និង Dynamic Island ដ៏ស្រស់ស្អាតបំផុត។</p>
+            </div>
+          </div>
+          <label class="ios-switch">
+            <input type="checkbox" id="checkIosGlassTheme" checked>
+            <span class="ios-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Info Banner -->
+      <div class="ios27-banner-card">
+        <h5>💡 កញ្ចប់កម្មវិធី Desktop App (.exe Installer)</h5>
+        <p>អ្នកអាចប្រើប្រាស់កម្មវិធីនេះជា <strong>Desktop App ពេញលេញ</strong> ដោយដំណើរការ <code>npm run electron</code> ឬ build ចេញជា Setup .exe តាមរយៈ <code>npm run build:exe</code>!</p>
+      </div>
+    </div>
+  </div>
+
   <!-- Notification Toast -->
   <div class="toast-notification" id="toastNotification"></div>
 
@@ -1531,6 +1622,7 @@
   <script src="js/comments.js"></script>
   <script src="js/bgm.js"></script>
   <script src="js/viewers.js"></script>
+  <script src="js/desktop.js"></script>
   <script src="js/studio.js"></script>
 </body>
 </html>
